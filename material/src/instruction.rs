@@ -1,33 +1,28 @@
+use crate::constants::NATIVE_TOKEN;
+use crate::keys;
 use crate::keys::PublicKeyBytes;
 
-pub enum InstructionType {
-    Transfer,
-    Program,
-}
-
 pub struct DataParameter {
-    pub d: Vec<u8>,
-    pub l: usize,
+    pub d: Vec<u8>, // the data
+    pub l: usize, // the length of the data
 }
 
 pub struct Instruction {
-    pub r#type: InstructionType,
-    pub data: Vec<DataParameter>,
+    pub proc_root: PublicKeyBytes, // the address of the program we aspire to call
+    pub proc_index: u8, // the index of the function we aspire to call
+    pub proc_params: Vec<DataParameter>,
 }
 
 impl Instruction {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        match self.r#type {
-            InstructionType::Transfer => {
-                bytes.push(0);
-            }
-            InstructionType::Program => {
-                bytes.push(1);
-            }
-        }
 
-        for data in &self.data {
+        // Add the root address which contains the procedures
+        bytes.extend(self.proc_root);
+        // Add the index of the procedure we would like to call
+        bytes.extend(self.proc_index.to_be_bytes());
+        // Add the parameters of the procedure
+        for data in &self.proc_params {
             bytes.extend(data.d.clone());
         }
 
@@ -41,22 +36,28 @@ impl Instruction {
             return Err("Instruction is empty".into());
         }
 
-        let r#type = match bytes[0] {
-            0 => InstructionType::Transfer,
-            1 => InstructionType::Program,
-            _ => return Err("Unknown instruction type".into()),
-        };
+        // Let's start by reading proc_root
+        let mut proc_root = [0; 48];
+        proc_root.copy_from_slice(&bytes[0..48]);
 
-        let mut data: Vec<DataParameter> = Vec::new();
-        let mut offset = 1;
+        // Next we read the proc_index
+        let proc_index = bytes[48];
+
+        // Next we read the proc_params
+        let mut proc_params = Vec::new();
+        let mut offset = 49; // 48 (root) + 1 (proc_index)
         while offset < bytes.len() {
-            let l = bytes[offset] as usize;
-            let d = bytes[offset + 1..offset + 1 + l].to_vec();
-            data.push(DataParameter { d, l });
-            offset += l + 1;
+            let length = bytes[offset] as usize;
+            let data = bytes[offset + 1..offset + 1 + length].to_vec();
+            proc_params.push(DataParameter { d: data, l: length });
+            offset += 1 + length;
         }
 
-        Ok(Instruction { r#type, data })
+        Ok(Instruction {
+            proc_root,
+            proc_index,
+            proc_params,
+        })
     }
 
     pub fn new_transfer_instruction(
@@ -93,7 +94,7 @@ impl Instruction {
 
         let mut data: Vec<DataParameter> = Vec::with_capacity(4);
         // The first parameter is the sender public key
-        let sender_param = DataParameter { d: sender, l: 48 };
+        let sender_param = DataParameter { d: sender.to_vec(), l: 48 };
         // The second parameter is the list of receivers public keys
         let receivers_param = DataParameter {
             d: receivers.concat(),
@@ -118,9 +119,24 @@ impl Instruction {
         data.push(currencies_param);
         data.push(amounts_param);
 
+        let proc_root = keys::address_to_bytes(NATIVE_TOKEN)?;
+
         Ok(Instruction {
-            r#type: InstructionType::Transfer,
-            data,
+            proc_root,
+            proc_index: 0,
+            proc_params: data,
+        })
+    }
+
+    pub fn new_custom_instruction(
+        proc_root: PublicKeyBytes,
+        proc_index: u8,
+        proc_params: Vec<DataParameter>,
+    ) -> Result<Instruction, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(Instruction {
+            proc_root,
+            proc_index,
+            proc_params,
         })
     }
 }

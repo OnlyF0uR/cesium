@@ -5,8 +5,12 @@ use pqcrypto_traits::sign::{
 
 use crate::constants::NATIVE_TOKEN;
 
-pub type PublicKeyBytes = Vec<u8>;
-pub type SecretKeyBytes = Vec<u8>;
+pub const PUB_BYTE_LEN: usize = 48;
+pub const SEC_BYTE_LEN: usize = 96;
+pub const SIG_BYTE_LEN: usize = 35664;
+
+pub type PublicKeyBytes = [u8; PUB_BYTE_LEN];
+pub type SecretKeyBytes = [u8; SEC_BYTE_LEN];
 
 pub struct KeyPair {
     public_key: PublicKey,
@@ -21,6 +25,18 @@ impl KeyPair {
         }
     }
 
+    pub fn readonly_from_readable_pub(public_key_s: &str) -> Result<KeyPair, Box<dyn std::error::Error + Send + Sync>> {
+        let pk_bytes = hex::decode(public_key_s)?;
+        if pk_bytes.len() != PUB_BYTE_LEN {
+            return Err("Invalid public key length".into());
+        }
+        let public_key = PublicKey::from_bytes(&pk_bytes)?;
+        Ok(KeyPair {
+            public_key,
+            secret_key: None,
+        })
+    }
+
     pub fn create() -> KeyPair {
         let (pk, sk) = pqcrypto_sphincsplus::sphincsshake192fsimple_keypair();
         KeyPair {
@@ -29,6 +45,9 @@ impl KeyPair {
         }
     }
 
+    // Idea: Use detached hash instead where the specified buffer,
+    // must have the size of the SIG_BYTE_LEN + the message byte length
+    // to continue using slices
     pub fn digest(
         &self,
         message: &[u8],
@@ -51,7 +70,7 @@ impl KeyPair {
         signature: &[u8],
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let tl = signature.len() - message.len();
-        if tl != pqcrypto_sphincsplus::sphincssha2192fsimple_signature_bytes() {
+        if tl != SIG_BYTE_LEN {
             return Err("Incongruent message and/or signature length".into());
         }
 
@@ -76,11 +95,11 @@ impl KeyPair {
         public_key_bytes: &[u8],
         secret_key_bytes: &[u8],
     ) -> Result<KeyPair, Box<dyn std::error::Error + Send + Sync>> {
-        if public_key_bytes.len() != pqcrypto_sphincsplus::sphincsshake192fsimple_public_key_bytes()
+        if public_key_bytes.len() != PUB_BYTE_LEN
         {
             return Err("Invalid public key length".into());
         }
-        if secret_key_bytes.len() != pqcrypto_sphincsplus::sphincsshake192fsimple_secret_key_bytes()
+        if secret_key_bytes.len() != SEC_BYTE_LEN
         {
             return Err("Invalid secret key length".into());
         }
@@ -100,11 +119,11 @@ impl KeyPair {
         let pk_bytes = hex::decode(public_key_s)?;
         let sk_bytes = hex::decode(secret_key_s)?;
 
-        if pk_bytes.len() != pqcrypto_sphincsplus::sphincsshake192fsimple_public_key_bytes() {
+        if pk_bytes.len() != PUB_BYTE_LEN {
             return Err("Invalid public key length".into());
         }
 
-        if sk_bytes.len() != pqcrypto_sphincsplus::sphincsshake192fsimple_secret_key_bytes() {
+        if sk_bytes.len() != SEC_BYTE_LEN {
             return Err("Invalid secret key length".into());
         }
 
@@ -113,14 +132,14 @@ impl KeyPair {
 
     pub fn to_bytes(
         &self,
-    ) -> Result<(PublicKeyBytes, SecretKeyBytes), Box<dyn std::error::Error + Send + Sync>> {
-        let pk = self.public_key.as_bytes().to_vec();
+    ) -> Result<(&PublicKeyBytes, &SecretKeyBytes), Box<dyn std::error::Error + Send + Sync>> {
+        let pk = slice_to_array_48(self.public_key.as_bytes())?;
 
         if self.secret_key.is_none() {
             return Err("Secret key is missing, use to_public_key_bytes instead".into());
         }
 
-        let sk = self.secret_key.as_ref().unwrap().as_bytes().to_vec();
+        let sk = slice_to_array_96(self.secret_key.as_ref().unwrap().as_bytes())?;
         Ok((pk, sk))
     }
 
@@ -137,8 +156,15 @@ impl KeyPair {
         Ok((pk_s, sk_s))
     }
 
-    pub fn to_public_key_bytes(&self) -> PublicKeyBytes {
-        self.public_key.as_bytes().to_vec()
+    pub fn to_public_key_bytes(&self) -> &PublicKeyBytes {
+        let bytes = self.public_key.as_bytes();
+        match slice_to_array_48(bytes) {
+            Ok(formatted) => formatted,
+            // Yes there is a panic here, but this should never happen
+            // because a public key is only accepted if the length is indeed
+            // 48 bytes
+            Err(_) => panic!("Invalid public key length"),
+        }
     }
 
     pub fn to_public_key_readable(&self) -> String {
@@ -152,16 +178,38 @@ pub fn address_to_bytes(
     if address == NATIVE_TOKEN {
         // We can skip the last few bytes
         let mut bytes = NATIVE_TOKEN.as_bytes().to_vec();
-        bytes.truncate(pqcrypto_sphincsplus::sphincsshake192fsimple_public_key_bytes());
+        bytes.truncate(PUB_BYTE_LEN);
 
-        return Ok(bytes);
+        let formatted = slice_to_array_48(&bytes.as_slice())?;
+        return Ok(formatted.clone());
     }
 
-    let bytes = hex::decode(address)?;
-    if bytes.len() != pqcrypto_sphincsplus::sphincsshake192fsimple_public_key_bytes() {
-        return Err("Invalid address length".into());
+    let mut buffer = [0u8; 48];
+    hex::decode_to_slice(address, &mut buffer)?;
+
+    Ok(buffer)
+}
+pub fn sig_byte_len(msg_len: usize) -> usize {
+   SIG_BYTE_LEN + msg_len
+}
+
+
+fn slice_to_array_48<T>(slice: &[T]) -> Result<&[T; 48], Box<dyn std::error::Error + Send + Sync>> {
+    if slice.len() == 48 {
+        let ptr = slice.as_ptr() as *const [T; 48];
+        unsafe {Ok(&*ptr)}
+    } else {
+        Err("Invalid slice length".into())
     }
-    Ok(bytes)
+}
+
+fn slice_to_array_96<T>(slice: &[T]) -> Result<&[T; 96], Box<dyn std::error::Error + Send + Sync>> {
+    if slice.len() == 96 {
+        let ptr = slice.as_ptr() as *const [T; 96];
+        unsafe {Ok(&*ptr)}
+    } else {
+        Err("Invalid slice length".into())
+    }
 }
 
 #[cfg(test)]

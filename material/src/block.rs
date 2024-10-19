@@ -1,29 +1,32 @@
-use pqcrypto_sphincsplus::sphincsshake192fsimple::PublicKey;
 use rand::Rng;
 
-use crate::{constants::MAX_BLOCK_TRANSACTIONS, keys::KeyPair, transaction::Transaction};
+use crate::{
+    constants::MAX_BLOCK_TRANSACTIONS,
+    keys::{KeyPair, PublicKeyBytes},
+    transaction::Transaction,
+};
 
 pub struct Block {
     pub index: u64,
-    pub previous_hash: String,
+    pub previous_hash: Vec<u8>, // length of message + 35664
     pub nonce: u128,
     pub transactions: Vec<Transaction>,
-    pub validator_key: PublicKey,
+    pub validator_key: PublicKeyBytes,
     pub signature: Option<Vec<u8>>,
 }
 
 impl Block {
     pub fn new(
         index: u64,
-        validator_key: PublicKey,
-        previous_hash: String,
+        validator_kp: &KeyPair,
+        previous_hash: Vec<u8>,
     ) -> Result<Block, Box<dyn std::error::Error + Send + Sync>> {
         Ok(Block {
             index,
             previous_hash,
             nonce: generate_nonce(),
             transactions: Vec::new(),
-            validator_key,
+            validator_key: *validator_kp.to_public_key_bytes(),
             signature: None,
         })
     }
@@ -47,8 +50,9 @@ impl Block {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend(&self.index.to_be_bytes());
-        bytes.extend(self.previous_hash.as_bytes());
+        bytes.extend(&self.previous_hash);
         bytes.extend(&self.nonce.to_be_bytes());
+        bytes.extend(&self.validator_key);
         for transaction in &self.transactions {
             bytes.extend(transaction.to_bytes());
         }
@@ -79,6 +83,15 @@ impl Block {
 
         let msg = self.to_bytes();
         Ok(kp.verify(&msg, signature)?)
+    }
+
+    pub fn derive_next(
+        previous: &Block,
+        validator_kp: &KeyPair,
+    ) -> Result<Block, Box<dyn std::error::Error + Send + Sync>> {
+        let mut block = Block::new(previous.index + 1, validator_kp, previous.to_bytes())?;
+        block.detached_hash(validator_kp)?;
+        Ok(block)
     }
 }
 

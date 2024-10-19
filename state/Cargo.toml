@@ -1,0 +1,8 @@
+[package]
+name = "state"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+material = { path = "../material" }
+tokio = { version = "1.40.0", features = ["full"] }
