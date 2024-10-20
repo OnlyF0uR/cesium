@@ -4,6 +4,7 @@ use std::{error::Error, fmt};
 pub enum OpcodeError {
     InvalidOpcode(u8),
     InvalidOperand(u8),
+    OperandLenghtMismatch(usize, usize),
 }
 
 impl fmt::Display for OpcodeError {
@@ -11,6 +12,13 @@ impl fmt::Display for OpcodeError {
         match *self {
             OpcodeError::InvalidOpcode(opcode) => write!(f, "Invalid opcode: {}", opcode),
             OpcodeError::InvalidOperand(operand) => write!(f, "Invalid operand: {}", operand),
+            OpcodeError::OperandLenghtMismatch(expected, actual) => {
+                write!(
+                    f,
+                    "Operand length mismatch: expected {}, got {}",
+                    expected, actual
+                )
+            }
         }
     }
 }
@@ -20,6 +28,7 @@ impl Error for OpcodeError {
         match *self {
             OpcodeError::InvalidOpcode(_) => None,
             OpcodeError::InvalidOperand(_) => None,
+            OpcodeError::OperandLenghtMismatch(_, _) => None,
         }
     }
 }
