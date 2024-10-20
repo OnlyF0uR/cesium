@@ -8,6 +8,7 @@ members = [
   "crates/cesium-econ",
   "crates/selenide/se-compiler",
   "crates/selenide/se-vm",
+  "crates/selenide/se-opcodes",
 
   # Executables
   "cesium-node",
@@ -45,3 +46,4 @@ cesium-state = { path = "crates/cesium-state" }
 cesium-econ = { path = "crates/cesium-econ" }
 se-compiler = { path = "crates/selenide/se-compiler" }
 se-vm = { path = "crates/selenide/se-vm" }
+se-opcodes = { path = "crates/selenide/se-opcodes" }
