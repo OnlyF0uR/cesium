@@ -1,0 +1,17 @@
+// This header file can only be imported once, use $poly for multiple
+$mono
+
+// Defines a couple of state variables
+// changes to the state are costly
+$state {
+  // Because there is no mut this can only be
+  // assigned in the constructor
+  address creator;
+
+  // For key-value stores that fallback to default values use:
+  // table(address, u128) example_amounts;
+}
+
+// Constants are immutable variables that can be accessed from
+// the constructor and procedures.
+// $consts {}

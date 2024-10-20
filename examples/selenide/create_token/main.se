@@ -1,0 +1,39 @@
+$define {
+  version = "^0.1.0"
+  header = "./main.seh"
+  schemes = [
+    {
+      // The token preset will add the required items to the state, consts,
+      // and includes all corresponding procedures (functions).
+      preset = "token@0.1.0"
+      params = {
+        decimals = 12
+        total_supply = 10e12 * 5
+        name = ["coolium", "COOL"]
+      }
+    }
+  ]
+}
+
+// Constructor
+init() {
+  // Distribute tokens, only available in init()
+  this.scheme.distTokens(this.caller, 10e12);
+  
+  // Assign a initial value to our immutable state
+  this.state.creator = this.caller;
+}
+
+// When minting a token specifying the scheme is already enough
+$program {
+  // Publicly accessible procedures
+  pub address creator() {
+    // We shall return a value from the state
+    return this.state.creator;
+  }
+
+  // Please note that functions that mutate state must be marked with 'mut' e.g.:
+  // pub mut add_example_amount(u128 amount) {
+  //   this.state.example_amounts[this.caller] = amount;
+  // }
+}

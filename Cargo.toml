@@ -1,9 +1,47 @@
-[package]
-name = "cesium"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+resolver = "2"
+members = [
+  # Inner libs
+  "crates/cesium-material",
+  "crates/cesium-mempool",
+  "crates/cesium-state",
+  "crates/cesium-econ",
+  "crates/selenide/se-compiler",
+  "crates/selenide/se-vm",
 
-[dependencies]
-material = { path = "./material" }
-mempool = { path = "./mempool" }
-state = { path = "./state" }
+  # Executables
+  "cesium-node",
+  "selc"
+]
+
+[workspace.package]
+version = "0.1.0"
+
+[profile.release]
+debug = 1
+split-debuginfo = 'packed'
+strip = 'debuginfo'
+panic = 'abort'
+
+[profile.release-dbgsym]
+inherits = "release"
+split-debuginfo = 'off'
+strip = 'none'
+
+[profile.bench]
+strip = 'none'
+
+[workspace.dependencies]
+tokio = { version = "1.40.0", features = ["full"] }
+pqcrypto-sphincsplus = { version = "0.7.0", features = ["avx2"] }
+pqcrypto-traits = "0.3.5"
+hex = "0.4.3"
+rand = "0.8.5"
+bs58 = "0.5.1"
+# Inner libs
+cesium-material = { path = "crates/cesium-material" }
+cesium-mempool = { path = "crates/cesium-mempool" }
+cesium-state = { path = "crates/cesium-state" }
+cesium-econ = { path = "crates/cesium-econ" }
+se-compiler = { path = "crates/selenide/se-compiler" }
+se-vm = { path = "crates/selenide/se-vm" }

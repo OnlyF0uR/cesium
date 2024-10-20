@@ -1,0 +1,10 @@
+[package]
+name = "cesium-state"
+edition = "2021"
+version.workspace = true
+license = "GPL-3.0"
+publish = false
+
+[dependencies]
+cesium-material.workspace = true
+tokio.workspace = true

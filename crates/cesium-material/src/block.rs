@@ -101,13 +101,12 @@ mod tests {
     use crate::{
         constants::{NATIVE_DECIMALS, NATIVE_TOKEN},
         instruction::Instruction,
-        keys::{self, KeyPair},
+        keys::{self, KeyPair, SIG_BYTE_LEN},
     };
 
     #[test]
     fn test_block() {
         let sender_kp = KeyPair::create();
-        let sender_pk = sender_kp.public_key();
         let receiver_kp = KeyPair::create();
 
         let currency = keys::address_to_bytes(NATIVE_TOKEN).unwrap();
@@ -115,8 +114,8 @@ mod tests {
 
         let instr: Instruction = Instruction::new_transfer_instruction(
             sender_kp.to_public_key_bytes(),
-            vec![receiver_kp.to_public_key_bytes()],
-            vec![currency],
+            &vec![receiver_kp.to_public_key_bytes().to_owned()],
+            &vec![currency],
             vec![amount],
         )
         .unwrap();
@@ -125,7 +124,10 @@ mod tests {
         tx.add_instruction(instr).unwrap();
         tx.detached_hash(&sender_kp).unwrap();
 
-        let mut block = Block::new(0, sender_pk, "0".to_string()).unwrap();
+        // Vec null hash
+        let null_hash = vec![0; SIG_BYTE_LEN];
+
+        let mut block = Block::new(0, &sender_kp, null_hash).unwrap();
         block.add_transaction(tx).unwrap();
         block.detached_hash(&sender_kp).unwrap();
 

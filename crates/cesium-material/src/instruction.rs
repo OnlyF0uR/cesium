@@ -4,12 +4,12 @@ use crate::keys::PublicKeyBytes;
 
 pub struct DataParameter {
     pub d: Vec<u8>, // the data
-    pub l: usize, // the length of the data
+    pub l: usize,   // the length of the data
 }
 
 pub struct Instruction {
     pub proc_root: PublicKeyBytes, // the address of the program we aspire to call
-    pub proc_index: u8, // the index of the function we aspire to call
+    pub proc_index: u8,            // the index of the function we aspire to call
     pub proc_params: Vec<DataParameter>,
 }
 
@@ -61,9 +61,9 @@ impl Instruction {
     }
 
     pub fn new_transfer_instruction(
-        sender: PublicKeyBytes,
-        receivers: Vec<PublicKeyBytes>,
-        currencies: Vec<PublicKeyBytes>,
+        sender: &PublicKeyBytes,
+        receivers: &Vec<PublicKeyBytes>,
+        currencies: &Vec<PublicKeyBytes>,
         amounts: Vec<u128>,
     ) -> Result<Instruction, Box<dyn std::error::Error + Send + Sync>> {
         if sender.len() != 48 {
@@ -74,13 +74,13 @@ impl Instruction {
             return Err("Amounts must be equal to receivers".into());
         }
 
-        for receiver in &receivers {
+        for receiver in receivers {
             if receiver.len() != 48 {
                 return Err("Receiver must be 48 bytes".into());
             }
         }
 
-        for currency in &currencies {
+        for currency in currencies {
             if currency.len() != 48 {
                 return Err("Currency must be 48 bytes".into());
             }
@@ -94,7 +94,10 @@ impl Instruction {
 
         let mut data: Vec<DataParameter> = Vec::with_capacity(4);
         // The first parameter is the sender public key
-        let sender_param = DataParameter { d: sender.to_vec(), l: 48 };
+        let sender_param = DataParameter {
+            d: sender.to_vec(),
+            l: 48,
+        };
         // The second parameter is the list of receivers public keys
         let receivers_param = DataParameter {
             d: receivers.concat(),

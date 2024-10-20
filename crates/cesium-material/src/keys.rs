@@ -9,6 +9,9 @@ pub const PUB_BYTE_LEN: usize = 48;
 pub const SEC_BYTE_LEN: usize = 96;
 pub const SIG_BYTE_LEN: usize = 35664;
 
+pub const PUB_CHAR_LEN: usize = 96;
+pub const SEC_CHAR_LEN: usize = 192;
+
 pub type PublicKeyBytes = [u8; PUB_BYTE_LEN];
 pub type SecretKeyBytes = [u8; SEC_BYTE_LEN];
 
@@ -25,7 +28,9 @@ impl KeyPair {
         }
     }
 
-    pub fn readonly_from_readable_pub(public_key_s: &str) -> Result<KeyPair, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn readonly_from_readable_pub(
+        public_key_s: &str,
+    ) -> Result<KeyPair, Box<dyn std::error::Error + Send + Sync>> {
         let pk_bytes = hex::decode(public_key_s)?;
         if pk_bytes.len() != PUB_BYTE_LEN {
             return Err("Invalid public key length".into());
@@ -95,12 +100,10 @@ impl KeyPair {
         public_key_bytes: &[u8],
         secret_key_bytes: &[u8],
     ) -> Result<KeyPair, Box<dyn std::error::Error + Send + Sync>> {
-        if public_key_bytes.len() != PUB_BYTE_LEN
-        {
+        if public_key_bytes.len() != PUB_BYTE_LEN {
             return Err("Invalid public key length".into());
         }
-        if secret_key_bytes.len() != SEC_BYTE_LEN
-        {
+        if secret_key_bytes.len() != SEC_BYTE_LEN {
             return Err("Invalid secret key length".into());
         }
 
@@ -190,14 +193,13 @@ pub fn address_to_bytes(
     Ok(buffer)
 }
 pub fn sig_byte_len(msg_len: usize) -> usize {
-   SIG_BYTE_LEN + msg_len
+    SIG_BYTE_LEN + msg_len
 }
-
 
 fn slice_to_array_48<T>(slice: &[T]) -> Result<&[T; 48], Box<dyn std::error::Error + Send + Sync>> {
     if slice.len() == 48 {
         let ptr = slice.as_ptr() as *const [T; 48];
-        unsafe {Ok(&*ptr)}
+        unsafe { Ok(&*ptr) }
     } else {
         Err("Invalid slice length".into())
     }
@@ -206,7 +208,7 @@ fn slice_to_array_48<T>(slice: &[T]) -> Result<&[T; 48], Box<dyn std::error::Err
 fn slice_to_array_96<T>(slice: &[T]) -> Result<&[T; 96], Box<dyn std::error::Error + Send + Sync>> {
     if slice.len() == 96 {
         let ptr = slice.as_ptr() as *const [T; 96];
-        unsafe {Ok(&*ptr)}
+        unsafe { Ok(&*ptr) }
     } else {
         Err("Invalid slice length".into())
     }
@@ -220,7 +222,7 @@ mod tests {
     fn test_keypair() {
         let kp = KeyPair::create();
         let (pk, sk) = kp.to_bytes().unwrap();
-        let kp2 = KeyPair::from_bytes(&pk, &sk).unwrap();
+        let kp2 = KeyPair::from_bytes(pk, sk).unwrap();
         assert_eq!(kp.to_public_key_bytes(), kp2.to_public_key_bytes());
         assert_eq!(kp.to_public_key_readable(), kp2.to_public_key_readable());
     }
@@ -239,7 +241,7 @@ mod tests {
         let kp = KeyPair::create();
 
         let pk = kp.to_public_key_bytes();
-        let pk2 = PublicKey::from_bytes(&pk).unwrap();
+        let pk2 = PublicKey::from_bytes(pk).unwrap();
         assert_eq!(kp.public_key.as_bytes(), pk2.as_bytes());
     }
 

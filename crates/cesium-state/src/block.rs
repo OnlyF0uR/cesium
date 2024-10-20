@@ -1,6 +1,5 @@
+use cesium_material::{block::Block, keys::KeyPair};
 use std::sync::Arc;
-use material::block::Block;
-use material::keys::KeyPair;
 use tokio::sync::OnceCell;
 
 pub struct BlockCache {
