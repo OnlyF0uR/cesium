@@ -11,3 +11,4 @@ pqcrypto-sphincsplus.workspace = true
 pqcrypto-traits.workspace = true
 hex.workspace = true
 rand.workspace = true
+bs58.workspace = true
