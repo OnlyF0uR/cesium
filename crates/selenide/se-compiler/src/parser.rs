@@ -18,7 +18,6 @@ pub enum ASTNode {
     // Define node stuff
     Define {
         version: Option<String>,
-        header: Option<String>,
         schemes: Vec<ASTNode>,
     },
     Schemes(Vec<ASTNode>),
@@ -79,16 +78,12 @@ impl<'a> Parser<'a> {
 
         self.next_token(); // Move past '{'
         let mut version = None;
-        let mut header = None;
         let mut schemes = Vec::new();
 
         while self.current_token != Token::RightBrace && self.current_token != Token::Eof {
             match &self.current_token {
                 Token::Version => {
                     version = Some(self.parse_version().1); // Store only the version string
-                }
-                Token::Header => {
-                    header = Some(self.parse_header()); // Store the header string
                 }
                 Token::Schemes => {
                     schemes = self.parse_schemes(); // Store the schemes as ASTNodes
@@ -108,11 +103,7 @@ impl<'a> Parser<'a> {
         self.next_token(); // Move past '}'
 
         // Construct and return the Define ASTNode with collected information
-        ASTNode::Define {
-            version,
-            header,
-            schemes,
-        }
+        ASTNode::Define { version, schemes }
     }
 
     /// Parses a version statement and returns it as an ASTNode.
@@ -133,26 +124,6 @@ impl<'a> Parser<'a> {
             return ("version".to_string(), version_value);
         }
         panic!("Expected string value for version");
-    }
-
-    /// Parses a header statement and returns it as an ASTNode.
-    fn parse_header(&mut self) -> String {
-        self.next_token(); // Move past 'header'
-        if let Token::Operator(ref op) = self.current_token {
-            if op != "=" {
-                panic!("Expected '=' after header");
-            }
-        } else {
-            panic!("Expected '=' after header");
-        }
-        self.next_token(); // Move past '='
-
-        if let Token::String(ref value) = self.current_token {
-            let value = value.clone();
-            self.next_token(); // Move past the string
-            return value;
-        }
-        panic!("Expected string value for header");
     }
 
     /// Parses schemes from the define statement and returns them as a Vec of ASTNodes.
@@ -321,16 +292,13 @@ impl<'a> Parser<'a> {
                     }
                     // Handle multiplication operator
                     while self.current_token == Token::Operator("*".to_string()) {
-                        log_current_token!(self);
                         self.next_token();
-                        log_current_token!(self);
                         if let Token::Number(ref value2) = self.current_token {
                             let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
                             let next_value = value2.parse::<u128>().unwrap(); // TODO: Handle errors
 
                             value = (original_value * next_value).to_string();
                             self.next_token();
-                            log_current_token!(self);
                         } else {
                             panic!("Expected number after operator");
                         }
@@ -378,7 +346,6 @@ impl<'a> Parser<'a> {
                     params.push((id, ASTNode::Number(value)));
                 } else if let Token::String(ref value) = self.current_token {
                     params.push((id, ASTNode::StringLiteral(value.clone())));
-                    log_current_token!(self);
                     self.next_token();
                 } else if let Token::RightBrace = self.current_token {
                     self.next_token();
@@ -387,7 +354,6 @@ impl<'a> Parser<'a> {
                     panic!("Unexpected token in params");
                 }
             } else {
-                log_current_token!(self);
                 panic!("Expected identifier in params");
             }
 
@@ -408,7 +374,6 @@ mod tests {
         let input = r#"
         $define {
           version = "^0.1.0"
-          header = "./main.seh"
           schemes = [
             {
               preset = "token@0.1.0"

@@ -1,9 +1,16 @@
+#[cfg(debug_assertions)]
+macro_rules! log_current_char {
+    ($lexer:expr) => {
+        println!("{:?}", $lexer.current_char());
+    };
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Define,             // Define keyword
     Version,            // Version keyword
-    Header,             // Header keyword
     Schemes,            // Schemes keyword
+    Include(String),    // Include keyword
     Address,            // Address keyword
     Consts,             // Consts keyword
     Function,           // Function keyword
@@ -84,8 +91,8 @@ impl<'a> Lexer<'a> {
             match identifier {
                 "$define" => return Token::Define,
                 "version" => return Token::Version,
-                "header" => return Token::Header,
                 "schemes" => return Token::Schemes,
+                "$include" => return self.tokenize_include(),
                 "address" => return Token::Address,
                 "consts" => return Token::Consts,
                 "pub" => return Token::Function,
@@ -155,6 +162,29 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn tokenize_include(&mut self) -> Token {
+        // if there is a whitespace after $include, skip it
+        if self.current_char().map_or(false, |c| c.is_whitespace()) {
+            self.skip_whitespace();
+        }
+
+        // Open the quote
+        if self.current_char() == Some('"') {
+            self.advance();
+        }
+
+        // read till next quote
+        let start_pos = self.pos;
+        // while alphbetical or numeric or underscore
+        while self.current_char().map_or(false, |c| c != '"') {
+            self.advance();
+        }
+
+        let include = &self.input[start_pos..self.pos];
+        self.advance(); // close the quote
+        Token::Include(include.to_string())
+    }
+
     fn tokenize_number(&mut self) -> Token {
         let start_pos = self.pos;
         let mut has_exponent = false;
@@ -222,7 +252,6 @@ mod tests {
     // This is a comment
     $define {
       version = "^0.1.0"
-      header = "./main.seh"
       schemes = [
         {
           preset = "token@0.1.0"
@@ -234,6 +263,8 @@ mod tests {
         }
       ]
     }
+
+    $include "file.se"
     "#;
 
         let mut lexer = Lexer::new(input);
@@ -247,6 +278,6 @@ mod tests {
             i += 1;
         }
 
-        assert_eq!(i, 38);
+        assert_eq!(i, 36);
     }
 }
