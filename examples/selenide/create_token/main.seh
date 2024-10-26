@@ -9,7 +9,7 @@ $state {
   address creator;
 
   // For key-value stores that fallback to default values use:
-  // table(address, u128) example_amounts;
+  table(address, u128) example_amounts;
 }
 
 // Constants are immutable variables that can be accessed from

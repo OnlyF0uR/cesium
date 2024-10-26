@@ -1,5 +1,6 @@
 use crate::lexer::{Lexer, Token};
 
+#[allow(unused_macros)]
 macro_rules! log_current_token {
     ($parser:expr) => {
         println!("Current token: {:?}", $parser.current_token);
@@ -30,7 +31,7 @@ pub enum ASTNode {
 
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
-    current_token: Token,
+    current_token: Token<'a>,
 }
 
 impl<'a> Parser<'a> {
@@ -387,7 +388,7 @@ mod tests {
         }
         "#;
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::new(input, "");
         let mut parser = Parser::new(lexer);
         let ast = parser.parse();
         // Further assertions can be made here to validate the resulting AST

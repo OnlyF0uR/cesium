@@ -1,45 +1,50 @@
-#[cfg(debug_assertions)]
-macro_rules! log_current_char {
-    ($lexer:expr) => {
-        println!("{:?}", $lexer.current_char());
-    };
-}
-
 #[derive(Debug, PartialEq, Clone)]
-pub enum Token {
-    Define,             // Define keyword
-    Version,            // Version keyword
-    Schemes,            // Schemes keyword
-    Include(String),    // Include keyword
-    Address,            // Address keyword
-    Consts,             // Consts keyword
-    Function,           // Function keyword
-    Return,             // Return keyword
-    Number(String),     // Number
-    Identifier(String), // Identifier
-    Operator(String),   // Operator
-    Comment(String),    // Comment
-    String(String),     // String literal
-    Whitespace,         // Whitespace
-    LeftBrace,          // {
-    RightBrace,         // }
-    LeftBracket,        // [
-    RightBracket,       // ]
-    LeftParen,          // (
-    RightParen,         // )
-    Comma,              // ,
-    SemiColon,          // ;
-    Eof,                // End of file
+pub enum Token<'a> {
+    Define,
+    Version,
+    Schemes,
+    State,
+    Consts,
+    Include(&'a str),
+    Address,
+    U128,
+    Table,
+    Function,
+    Return,
+    Number(String),
+    Identifier(String),
+    Operator(String),
+    Comment(String),
+    String(String),
+    Whitespace,
+    LeftBrace,
+    RightBrace,
+    LeftBracket,
+    RightBracket,
+    LeftParen,
+    RightParen,
+    Comma,
+    SemiColon,
+    Eof,
 }
 
 pub struct Lexer<'a> {
-    input: &'a str,
+    input: &'a str, // Reference to the input string
     pos: usize,
+    inner_lexer: Option<Box<Lexer<'a>>>, // Inner lexer for included files with the same lifetime as the outer lexer
+    included_files: Vec<&'a str>,        // Store included file contents
+    working_dir: &'a str,                // Working directory for the lexer
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Lexer<'a> {
-        Lexer { input, pos: 0 }
+    pub fn new(input: &'a str, working_dir: &'a str) -> Lexer<'a> {
+        Lexer {
+            input,
+            pos: 0,
+            inner_lexer: None,
+            included_files: Vec::new(), // Initialize the included files vector
+            working_dir,
+        }
     }
 
     fn current_char(&self) -> Option<char> {
@@ -56,7 +61,16 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn next_token(&mut self) -> Token {
+    pub fn next_token(&mut self) -> Token<'a> {
+        // Check if we have an inner lexer to process first
+        if let Some(inner) = self.inner_lexer.as_mut() {
+            let token = inner.next_token();
+            if token == Token::Eof {
+                self.inner_lexer = None; // Clear inner lexer when done
+            }
+            return token;
+        }
+
         self.skip_whitespace();
 
         if self.pos >= self.input.len() {
@@ -65,7 +79,6 @@ impl<'a> Lexer<'a> {
 
         let current_char = self.current_char().unwrap();
 
-        // Handle comments
         if current_char == '/' {
             if self.input[self.pos..].starts_with("//") {
                 let start_pos = self.pos;
@@ -77,10 +90,8 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        // Handle identifiers and keywords
         if current_char == '$' || current_char.is_alphabetic() {
             let start_pos = self.pos;
-            // Allow identifiers to start with $ and then be followed by letters or underscores
             while self
                 .current_char()
                 .map_or(false, |c| c.is_alphanumeric() || c == '_' || c == '$')
@@ -92,9 +103,12 @@ impl<'a> Lexer<'a> {
                 "$define" => return Token::Define,
                 "version" => return Token::Version,
                 "schemes" => return Token::Schemes,
+                "$state" => return Token::State,
+                "$consts" => return Token::Consts,
                 "$include" => return self.tokenize_include(),
                 "address" => return Token::Address,
-                "consts" => return Token::Consts,
+                "table" => return Token::Table,
+                "u128" => return Token::U128,
                 "pub" => return Token::Function,
                 "return" => return Token::Return,
                 _ => return Token::Identifier(identifier.to_string()),
@@ -108,17 +122,16 @@ impl<'a> Lexer<'a> {
             while self.current_char().map_or(false, |c| c != '"') {
                 self.advance();
             }
-            // Skip the closing quote
             if self.current_char() == Some('"') {
                 self.advance();
             }
-            let string_literal = &self.input[start_pos..self.pos - 1]; // -1 to exclude closing quote
+            let string_literal = &self.input[start_pos..self.pos - 1];
             return Token::String(string_literal.to_string());
         }
 
         // Handle numbers
         if current_char.is_digit(10) || current_char == '.' {
-            return self.tokenize_number(); // Handle number tokenization
+            return self.tokenize_number();
         }
 
         // Handle operators and punctuation
@@ -162,30 +175,39 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn tokenize_include(&mut self) -> Token {
-        // if there is a whitespace after $include, skip it
-        if self.current_char().map_or(false, |c| c.is_whitespace()) {
-            self.skip_whitespace();
-        }
+    fn tokenize_include(&mut self) -> Token<'a> {
+        self.skip_whitespace();
 
-        // Open the quote
         if self.current_char() == Some('"') {
             self.advance();
         }
 
-        // read till next quote
         let start_pos = self.pos;
-        // while alphbetical or numeric or underscore
         while self.current_char().map_or(false, |c| c != '"') {
             self.advance();
         }
 
         let include = &self.input[start_pos..self.pos];
         self.advance(); // close the quote
-        Token::Include(include.to_string())
+
+        // Load the content of the included file
+        self.load_header(include);
+        Token::Include(include) // Return the include token
     }
 
-    fn tokenize_number(&mut self) -> Token {
+    fn load_header(&mut self, filename: &str) {
+        let included_file_path = std::path::Path::new(self.working_dir).join(filename);
+        let file_content = std::fs::read_to_string(included_file_path).unwrap();
+
+        // Store the included content and create a new lexer for it
+        let included_content: &'a str = Box::leak(file_content.into_boxed_str());
+        self.included_files.push(included_content);
+
+        // Create a new lexer for the included content with the same lifetime as the outer lexer
+        self.inner_lexer = Some(Box::new(Lexer::new(included_content, self.working_dir)));
+    }
+
+    fn tokenize_number(&mut self) -> Token<'a> {
         let start_pos = self.pos;
         let mut has_exponent = false;
 
@@ -202,42 +224,32 @@ impl<'a> Lexer<'a> {
         let number = &self.input[start_pos..self.pos];
 
         if has_exponent {
-            // Handle scientific notation like 10e12
             if let Some(exponent) = self.parse_exponent(number) {
-                // Expand the number into a string format
                 let base = &number[..number.find('e').unwrap()];
                 let expanded_number = self.expand_scientific_notation(base, exponent);
                 return Token::Number(expanded_number);
             }
         }
 
-        // Return the number as a string if there's no exponent
         Token::Number(number.to_string())
     }
 
     fn parse_exponent(&self, number: &str) -> Option<i32> {
         if let Some(index) = number.find('e').or_else(|| number.find('E')) {
-            let exponent = &number[(index + 1)..]; // Extract exponent (after 'e')
-
-            // Parse the exponent as i32, and ignore anything that doesn't parse correctly
+            let exponent = &number[(index + 1)..];
             if let Ok(exponent_value) = exponent.parse::<i32>() {
                 return Some(exponent_value);
             }
         }
-
-        None // Return None if it's not a valid exponent
+        None
     }
 
     fn expand_scientific_notation(&self, base: &str, exponent: i32) -> String {
-        // Generate a string representation of the expanded number
-        let base_number: String = base.chars().collect(); // Keep the base as a string
+        let base_number: String = base.chars().collect();
         let mut expanded_number = base_number.to_string();
-
-        // Append zeros based on the exponent value
         for _ in 0..exponent {
             expanded_number.push('0');
         }
-
         expanded_number
     }
 }
@@ -248,26 +260,12 @@ mod tests {
 
     #[test]
     fn test_define() {
-        let input = r#"
-    // This is a comment
-    $define {
-      version = "^0.1.0"
-      schemes = [
-        {
-          preset = "token@0.1.0"
-          params = {
-            decimals = 12
-            total_supply = 10e12 * 5
-            name = ["coolium", "COOL"]
-          }
-        }
-      ]
-    }
+        let w_path = "../../../examples/selenide/create_token";
+        let main_path = format!("{}/main.se", w_path);
 
-    $include "file.se"
-    "#;
+        let input = std::fs::read_to_string(main_path).unwrap();
 
-        let mut lexer = Lexer::new(input);
+        let mut lexer = Lexer::new(&input, w_path);
         let mut i = 0;
         loop {
             let token = lexer.next_token();
@@ -278,6 +276,6 @@ mod tests {
             i += 1;
         }
 
-        assert_eq!(i, 36);
+        assert_eq!(i, 61);
     }
 }
