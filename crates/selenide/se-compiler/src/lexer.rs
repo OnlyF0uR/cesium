@@ -8,6 +8,7 @@ pub enum Token<'a> {
     Include(&'a str),
     Address,
     U128,
+    U8,
     Table,
     Function,
     Return,
@@ -25,6 +26,7 @@ pub enum Token<'a> {
     RightParen,
     Comma,
     SemiColon,
+    Period,
     Eof,
 }
 
@@ -67,7 +69,9 @@ impl<'a> Lexer<'a> {
             let token = inner.next_token();
             if token == Token::Eof {
                 self.inner_lexer = None; // Clear inner lexer when done
+                return self.next_token(); // Continue processing the outer lexer
             }
+
             return token;
         }
 
@@ -109,6 +113,7 @@ impl<'a> Lexer<'a> {
                 "address" => return Token::Address,
                 "table" => return Token::Table,
                 "u128" => return Token::U128,
+                "u8" => return Token::U8,
                 "pub" => return Token::Function,
                 "return" => return Token::Return,
                 _ => return Token::Identifier(identifier.to_string()),
@@ -231,6 +236,10 @@ impl<'a> Lexer<'a> {
             }
         }
 
+        if number == "." {
+            return Token::Period;
+        }
+
         Token::Number(number.to_string())
     }
 
@@ -276,6 +285,6 @@ mod tests {
             i += 1;
         }
 
-        assert_eq!(i, 61);
+        assert_eq!(i, 114);
     }
 }

@@ -1,6 +1,3 @@
-// This header file can only be imported once, use $poly for multiple
-$mono
-
 // Defines a couple of state variables
 // changes to the state are costly
 $state {

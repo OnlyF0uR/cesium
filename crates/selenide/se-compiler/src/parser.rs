@@ -335,9 +335,9 @@ impl<'a> Parser<'a> {
                         self.next_token();
                         if let Token::Number(ref value2) = self.current_token {
                             let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
-                            let next_value = value2.parse::<u128>().unwrap(); // TODO: Handle errors
+                            let next_value = value2.parse::<u32>().unwrap(); // TODO: Handle errors
 
-                            value = (original_value.pow(next_value as u32)).to_string();
+                            value = (original_value.pow(next_value)).to_string();
                             self.next_token();
                         } else {
                             panic!("Expected number after operator");
