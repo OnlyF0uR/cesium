@@ -110,7 +110,7 @@ impl<'a> Parser<'a> {
     /// Parses a version statement and returns it as an ASTNode.
     fn parse_version(&mut self) -> (String, String) {
         self.next_token(); // Move past 'version'
-        if let Token::Operator(ref op) = self.current_token {
+        if let Token::Operator(op) = self.current_token {
             if op != "=" {
                 panic!("Expected '=' after version");
             }
@@ -119,10 +119,9 @@ impl<'a> Parser<'a> {
         }
         self.next_token(); // Move past '='
 
-        if let Token::String(ref value) = self.current_token {
-            let version_value = value.clone();
+        if let Token::String(value) = self.current_token {
             self.next_token(); // Move past the string
-            return ("version".to_string(), version_value);
+            return ("version".to_owned(), value.to_owned());
         }
         panic!("Expected string value for version");
     }
@@ -130,7 +129,7 @@ impl<'a> Parser<'a> {
     /// Parses schemes from the define statement and returns them as a Vec of ASTNodes.
     fn parse_schemes(&mut self) -> Vec<ASTNode> {
         self.next_token(); // Move past '='
-        if let Token::Operator(ref op) = self.current_token {
+        if let Token::Operator(op) = self.current_token {
             if op != "=" {
                 panic!("Expected '=' after schemes");
             }
@@ -182,13 +181,13 @@ impl<'a> Parser<'a> {
     /// Parses a preset value from a scheme and returns it as an ASTNode.
     fn parse_preset(&mut self) -> String {
         // move past 'preset'
-        if self.current_token != Token::Identifier("preset".to_string()) {
+        if self.current_token != Token::Identifier("preset") {
             panic!("Expected 'preset' to start scheme");
         }
         self.next_token();
 
         // move past '='
-        if let Token::Operator(ref op) = self.current_token {
+        if let Token::Operator(op) = self.current_token {
             if op != "=" {
                 panic!("Expected '=' after preset");
             }
@@ -197,10 +196,9 @@ impl<'a> Parser<'a> {
         }
         self.next_token();
 
-        if let Token::String(ref value) = self.current_token {
-            let value = value.clone();
+        if let Token::String(value) = self.current_token {
             self.next_token(); // Move past the string
-            return value; // Return preset as StringLiteral
+            return value.to_owned(); // Return preset as StringLiteral
         }
         panic!("Expected string value for preset");
     }
@@ -208,13 +206,13 @@ impl<'a> Parser<'a> {
     /// Parses parameters from a scheme and returns them as an ASTNode.
     fn parse_params(&mut self) -> Vec<(String, ASTNode)> {
         // move past 'params'
-        if self.current_token != Token::Identifier("params".to_string()) {
+        if self.current_token != Token::Identifier("params") {
             panic!("Expected 'params' to start scheme");
         }
         self.next_token();
 
         // move past '='
-        if let Token::Operator(ref op) = self.current_token {
+        if let Token::Operator(op) = self.current_token {
             if op != "=" {
                 panic!("Expected '=' after params");
             }
@@ -231,13 +229,12 @@ impl<'a> Parser<'a> {
 
         let mut params = Vec::new();
         while self.current_token != Token::RightBrace && self.current_token != Token::Eof {
-            if let Token::Identifier(ref id) = self.current_token {
-                let id = id.clone(); // the key
-                                     // Move past the identifier to the value
+            if let Token::Identifier(id) = self.current_token {
+                // Move past the identifier to the value
                 self.next_token();
 
                 // move past '='
-                if let Token::Operator(ref op) = self.current_token {
+                if let Token::Operator(op) = self.current_token {
                     if op != "=" {
                         panic!("Expected '=' after identifier");
                     }
@@ -253,20 +250,20 @@ impl<'a> Parser<'a> {
 
                     let mut array = Vec::new();
                     while self.current_token != Token::RightBracket {
-                        if let Token::String(ref value) = self.current_token {
-                            array.push(ASTNode::StringLiteral(value.clone()));
+                        if let Token::String(value) = self.current_token {
+                            array.push(ASTNode::StringLiteral(value.to_owned()));
                         }
                         self.next_token(); // Move to the next token
                     }
                     self.next_token(); // Move past ']'
-                    params.push((id, ASTNode::Array(array)));
+                    params.push((id.to_string(), ASTNode::Array(array)));
                     self.next_token();
                 } else if let Token::Number(ref value) = self.current_token {
                     let mut value = value.clone();
                     self.next_token();
 
                     // Handle plus operator
-                    while self.current_token == Token::Operator("+".to_string()) {
+                    while self.current_token == Token::Operator("+") {
                         self.next_token();
                         if let Token::Number(ref value2) = self.current_token {
                             let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
@@ -279,7 +276,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     // Handle minus operator
-                    while self.current_token == Token::Operator("-".to_string()) {
+                    while self.current_token == Token::Operator("-") {
                         self.next_token();
                         if let Token::Number(ref value2) = self.current_token {
                             let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
@@ -292,7 +289,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     // Handle multiplication operator
-                    while self.current_token == Token::Operator("*".to_string()) {
+                    while self.current_token == Token::Operator("*") {
                         self.next_token();
                         if let Token::Number(ref value2) = self.current_token {
                             let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
@@ -305,7 +302,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     // Handle division operator
-                    while self.current_token == Token::Operator("/".to_string()) {
+                    while self.current_token == Token::Operator("/") {
                         self.next_token();
                         if let Token::Number(ref value2) = self.current_token {
                             let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
@@ -318,7 +315,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     // Handle modulo operator
-                    while self.current_token == Token::Operator("%".to_string()) {
+                    while self.current_token == Token::Operator("%") {
                         self.next_token();
                         if let Token::Number(ref value2) = self.current_token {
                             let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
@@ -331,7 +328,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     // Handle exponentiation operator
-                    while self.current_token == Token::Operator("^".to_string()) {
+                    while self.current_token == Token::Operator("^") {
                         self.next_token();
                         if let Token::Number(ref value2) = self.current_token {
                             let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
@@ -344,9 +341,9 @@ impl<'a> Parser<'a> {
                         }
                     }
 
-                    params.push((id, ASTNode::Number(value)));
-                } else if let Token::String(ref value) = self.current_token {
-                    params.push((id, ASTNode::StringLiteral(value.clone())));
+                    params.push((id.to_string(), ASTNode::Number(value)));
+                } else if let Token::String(value) = self.current_token {
+                    params.push((id.to_string(), ASTNode::StringLiteral(value.to_owned())));
                     self.next_token();
                 } else if let Token::RightBrace = self.current_token {
                     self.next_token();

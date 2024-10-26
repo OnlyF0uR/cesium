@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+use std::path::Path;
+use std::sync::OnceLock;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token<'a> {
     Define,
@@ -10,13 +14,14 @@ pub enum Token<'a> {
     U128,
     U8,
     Table,
-    Function,
+    PubFModifier,
+    MutFModifier,
     Return,
-    Number(String),
-    Identifier(String),
-    Operator(String),
-    Comment(String),
-    String(String),
+    Number(String), // String so we don't need to box leak it
+    Identifier(&'a str),
+    Operator(&'a str),
+    Comment(&'a str),
+    String(&'a str),
     Whitespace,
     LeftBrace,
     RightBrace,
@@ -31,21 +36,43 @@ pub enum Token<'a> {
 }
 
 pub struct Lexer<'a> {
-    input: &'a str, // Reference to the input string
+    input: &'a str,
     pos: usize,
-    inner_lexer: Option<Box<Lexer<'a>>>, // Inner lexer for included files with the same lifetime as the outer lexer
-    included_files: Vec<&'a str>,        // Store included file contents
-    working_dir: &'a str,                // Working directory for the lexer
+    inner_lexer: Option<Box<Lexer<'a>>>,
+    included_files: Vec<String>, // Store owned Strings
+    working_dir: &'a str,
+    keywords: &'static HashMap<&'static str, Token<'static>>,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str, working_dir: &'a str) -> Lexer<'a> {
+    fn build_keyword_map() -> HashMap<&'static str, Token<'static>> {
+        let mut keywords = HashMap::new();
+        keywords.insert("$define", Token::Define);
+        keywords.insert("version", Token::Version);
+        keywords.insert("schemes", Token::Schemes);
+        keywords.insert("$state", Token::State);
+        keywords.insert("$consts", Token::Consts);
+        keywords.insert("address", Token::Address);
+        keywords.insert("table", Token::Table);
+        keywords.insert("u128", Token::U128);
+        keywords.insert("u8", Token::U8);
+        keywords.insert("pub", Token::PubFModifier);
+        keywords.insert("mut", Token::MutFModifier);
+        keywords.insert("return", Token::Return);
+        keywords
+    }
+
+    pub fn new(input: &'a str, working_dir: &'a str) -> Self {
+        static KEYWORDS: OnceLock<HashMap<&'static str, Token<'static>>> = OnceLock::new();
+        let keywords = KEYWORDS.get_or_init(Self::build_keyword_map);
+
         Lexer {
             input,
             pos: 0,
             inner_lexer: None,
-            included_files: Vec::new(), // Initialize the included files vector
+            included_files: Vec::with_capacity(10),
             working_dir,
+            keywords,
         }
     }
 
@@ -54,7 +81,9 @@ impl<'a> Lexer<'a> {
     }
 
     fn advance(&mut self) {
-        self.pos += self.current_char().map_or(0, |c| c.len_utf8());
+        if let Some(c) = self.current_char() {
+            self.pos += c.len_utf8();
+        }
     }
 
     fn skip_whitespace(&mut self) {
@@ -64,14 +93,12 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn next_token(&mut self) -> Token<'a> {
-        // Check if we have an inner lexer to process first
         if let Some(inner) = self.inner_lexer.as_mut() {
             let token = inner.next_token();
             if token == Token::Eof {
-                self.inner_lexer = None; // Clear inner lexer when done
-                return self.next_token(); // Continue processing the outer lexer
+                self.inner_lexer = None;
+                return self.next_token();
             }
-
             return token;
         }
 
@@ -83,15 +110,12 @@ impl<'a> Lexer<'a> {
 
         let current_char = self.current_char().unwrap();
 
-        if current_char == '/' {
-            if self.input[self.pos..].starts_with("//") {
-                let start_pos = self.pos;
-                while self.current_char().map_or(false, |c| c != '\n') {
-                    self.advance();
-                }
-                let comment = &self.input[start_pos..self.pos];
-                return Token::Comment(comment.to_string());
+        if current_char == '/' && self.input[self.pos..].starts_with("//") {
+            let start_pos = self.pos;
+            while self.current_char().map_or(false, |c| c != '\n') {
+                self.advance();
             }
+            return Token::Comment(&self.input[start_pos..self.pos]);
         }
 
         if current_char == '$' || current_char.is_alphabetic() {
@@ -103,80 +127,45 @@ impl<'a> Lexer<'a> {
                 self.advance();
             }
             let identifier = &self.input[start_pos..self.pos];
-            match identifier {
-                "$define" => return Token::Define,
-                "version" => return Token::Version,
-                "schemes" => return Token::Schemes,
-                "$state" => return Token::State,
-                "$consts" => return Token::Consts,
-                "$include" => return self.tokenize_include(),
-                "address" => return Token::Address,
-                "table" => return Token::Table,
-                "u128" => return Token::U128,
-                "u8" => return Token::U8,
-                "pub" => return Token::Function,
-                "return" => return Token::Return,
-                _ => return Token::Identifier(identifier.to_string()),
+
+            if identifier == "$include" {
+                return self.tokenize_include();
             }
+
+            if let Some(token) = self.keywords.get(identifier) {
+                return token.clone();
+            }
+
+            return Token::Identifier(identifier);
         }
 
-        // Handle string literals
         if current_char == '"' {
-            self.advance(); // skip the opening quote
+            self.advance();
             let start_pos = self.pos;
             while self.current_char().map_or(false, |c| c != '"') {
                 self.advance();
             }
-            if self.current_char() == Some('"') {
-                self.advance();
-            }
-            let string_literal = &self.input[start_pos..self.pos - 1];
-            return Token::String(string_literal.to_string());
+            let end_pos = self.pos;
+            self.advance();
+            return Token::String(&self.input[start_pos..end_pos]);
         }
 
-        // Handle numbers
         if current_char.is_digit(10) || current_char == '.' {
             return self.tokenize_number();
         }
 
-        // Handle operators and punctuation
+        self.advance();
         match current_char {
-            '{' => {
-                self.advance();
-                return Token::LeftBrace;
-            }
-            '}' => {
-                self.advance();
-                return Token::RightBrace;
-            }
-            '[' => {
-                self.advance();
-                return Token::LeftBracket;
-            }
-            ']' => {
-                self.advance();
-                return Token::RightBracket;
-            }
-            '(' => {
-                self.advance();
-                return Token::LeftParen;
-            }
-            ')' => {
-                self.advance();
-                return Token::RightParen;
-            }
-            ',' => {
-                self.advance();
-                return Token::Comma;
-            }
-            ';' => {
-                self.advance();
-                return Token::SemiColon;
-            }
-            _ => {
-                self.advance();
-                return Token::Operator(current_char.to_string());
-            }
+            '{' => Token::LeftBrace,
+            '}' => Token::RightBrace,
+            '[' => Token::LeftBracket,
+            ']' => Token::RightBracket,
+            '(' => Token::LeftParen,
+            ')' => Token::RightParen,
+            ',' => Token::Comma,
+            ';' => Token::SemiColon,
+            '.' => Token::Period,
+            _ => Token::Operator(&self.input[self.pos - 1..self.pos]),
         }
     }
 
@@ -193,23 +182,22 @@ impl<'a> Lexer<'a> {
         }
 
         let include = &self.input[start_pos..self.pos];
-        self.advance(); // close the quote
+        self.advance();
 
-        // Load the content of the included file
         self.load_header(include);
-        Token::Include(include) // Return the include token
+        Token::Include(include)
     }
 
     fn load_header(&mut self, filename: &str) {
-        let included_file_path = std::path::Path::new(self.working_dir).join(filename);
-        let file_content = std::fs::read_to_string(included_file_path).unwrap();
+        let included_file_path = Path::new(self.working_dir).join(filename);
+        let file_content =
+            std::fs::read_to_string(included_file_path).expect("Failed to read included file");
 
-        // Store the included content and create a new lexer for it
-        let included_content: &'a str = Box::leak(file_content.into_boxed_str());
-        self.included_files.push(included_content);
+        // Create a new lexer with a static reference
+        let content = Box::leak(file_content.into_boxed_str());
+        self.included_files.push(content.to_string()); // Store for potential cleanup
 
-        // Create a new lexer for the included content with the same lifetime as the outer lexer
-        self.inner_lexer = Some(Box::new(Lexer::new(included_content, self.working_dir)));
+        self.inner_lexer = Some(Box::new(Lexer::new(content, self.working_dir)));
     }
 
     fn tokenize_number(&mut self) -> Token<'a> {
@@ -219,10 +207,9 @@ impl<'a> Lexer<'a> {
         while self.current_char().map_or(false, |c| {
             c.is_digit(10) || c == '.' || c == 'e' || c == 'E'
         }) {
-            if self.current_char() == Some('e') || self.current_char() == Some('E') {
+            if matches!(self.current_char(), Some('e' | 'E')) {
                 has_exponent = true;
             }
-
             self.advance();
         }
 
@@ -230,9 +217,11 @@ impl<'a> Lexer<'a> {
 
         if has_exponent {
             if let Some(exponent) = self.parse_exponent(number) {
-                let base = &number[..number.find('e').unwrap()];
-                let expanded_number = self.expand_scientific_notation(base, exponent);
-                return Token::Number(expanded_number);
+                if let Some(base_end) = number.find(['e', 'E']) {
+                    let base = &number[..base_end];
+                    let expanded = self.expand_scientific_notation(base, exponent);
+                    return Token::Number(expanded);
+                }
             }
         }
 
@@ -244,22 +233,17 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_exponent(&self, number: &str) -> Option<i32> {
-        if let Some(index) = number.find('e').or_else(|| number.find('E')) {
-            let exponent = &number[(index + 1)..];
-            if let Ok(exponent_value) = exponent.parse::<i32>() {
-                return Some(exponent_value);
-            }
-        }
-        None
+        number
+            .find(['e', 'E'])
+            .and_then(|index| number[(index + 1)..].parse::<i32>().ok())
     }
 
     fn expand_scientific_notation(&self, base: &str, exponent: i32) -> String {
-        let base_number: String = base.chars().collect();
-        let mut expanded_number = base_number.to_string();
+        let mut expanded = base.to_string();
         for _ in 0..exponent {
-            expanded_number.push('0');
+            expanded.push('0');
         }
-        expanded_number
+        expanded
     }
 }
 
@@ -273,18 +257,27 @@ mod tests {
         let main_path = format!("{}/main.se", w_path);
 
         let input = std::fs::read_to_string(main_path).unwrap();
-
         let mut lexer = Lexer::new(&input, w_path);
-        let mut i = 0;
+        let mut token_count = 0;
+
         loop {
             let token = lexer.next_token();
             println!("{:?}", token);
             if token == Token::Eof {
                 break;
             }
-            i += 1;
+            token_count += 1;
         }
 
-        assert_eq!(i, 114);
+        assert_eq!(token_count, 114);
+    }
+
+    #[test]
+    fn test_numbers_and_scientific_notation() {
+        let input = "123 1e5";
+        let mut lexer = Lexer::new(input, "");
+
+        assert_eq!(lexer.next_token(), Token::Number("123".to_string()));
+        assert_eq!(lexer.next_token(), Token::Number("100000".to_string()));
     }
 }
