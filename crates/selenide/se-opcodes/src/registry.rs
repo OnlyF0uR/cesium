@@ -1,32 +1,32 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use cesium_material::keys::PublicKeyBytes;
 
 use crate::errors::RegistryError;
 
 #[derive(Debug, Clone)]
-pub enum StateValue {
+pub enum StateValue<'a> {
     Uint8(u8),
     Uint128(u128),
-    String(String),
+    String(&'a str),
     Bool(bool),
     ByteArray(Vec<u8>),
     Address(PublicKeyBytes),
-    NumericMap(HashMap<String, u128>),
-    AddressMap(HashMap<String, PublicKeyBytes>),
+    NumericMap(HashMap<Rc<str>, u128>),
+    AddressMap(HashMap<Rc<str>, PublicKeyBytes>),
 }
 
 #[derive(Debug, Clone)]
-pub enum Value {
+pub enum Value<'a> {
     Uint8(u8),
     Uint128(u128),
-    String(String),
+    String(&'a str),
     Bool(bool),
     ByteArray(Vec<u8>),
     Address(PublicKeyBytes),
 }
 
-impl Value {
+impl<'a> Value<'a> {
     pub fn as_uint8(&self) -> Option<u8> {
         if let Value::Uint8(val) = self {
             Some(*val)
@@ -43,9 +43,9 @@ impl Value {
         }
     }
 
-    pub fn as_string(&self) -> Option<&String> {
-        if let Value::String(ref val) = self {
-            Some(val)
+    pub fn as_string(&self) -> Option<&str> {
+        if let Value::String(val) = self {
+            Some(*val)
         } else {
             None
         }
@@ -76,12 +76,12 @@ impl Value {
     }
 }
 
-pub struct ExecutionContext {
-    state: HashMap<String, StateValue>, // State variables stored by name
-    memory: Vec<Value>,                 // Registers (local variables for function execution)
+pub struct ExecutionContext<'a> {
+    state: HashMap<Rc<str>, StateValue<'a>>, // State variables stored by name
+    memory: Vec<Value<'a>>,                  // Registers (local variables for function execution)
 }
 
-impl ExecutionContext {
+impl<'a> ExecutionContext<'a> {
     pub fn new_empty() -> Self {
         ExecutionContext {
             state: HashMap::new(),
@@ -89,7 +89,7 @@ impl ExecutionContext {
         }
     }
 
-    pub fn new_with_state(state: HashMap<String, StateValue>) -> Self {
+    pub fn new_with_state(state: HashMap<Rc<str>, StateValue<'a>>) -> Self {
         ExecutionContext {
             state,
             memory: Vec::new(),
@@ -105,7 +105,7 @@ impl ExecutionContext {
     }
 
     // Function to handle SET_STATE, storing a value in the state
-    pub fn set_state(&mut self, key: &str, value: StateValue) -> Result<(), RegistryError> {
+    pub fn set_state(&mut self, key: &str, value: StateValue<'a>) -> Result<(), RegistryError> {
         // TODO: Type checking for value and matching against existing state value
         match self.state.get_mut(key) {
             Some(entry) => {
@@ -113,13 +113,13 @@ impl ExecutionContext {
                 Ok(())
             }
             None => {
-                self.state.insert(key.to_owned(), value);
+                self.state.insert(key.into(), value);
                 Ok(())
             }
         }
     }
 
-    pub fn malloc(&mut self, value: Value) -> usize {
+    pub fn malloc(&mut self, value: Value<'a>) -> usize {
         self.memory.push(value);
         self.memory.len() - 1
     }
