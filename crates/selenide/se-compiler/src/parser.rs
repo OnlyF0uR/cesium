@@ -3,7 +3,7 @@ use crate::lexer::{Lexer, Token};
 #[allow(unused_macros)]
 macro_rules! log_current_token {
     ($parser:expr) => {
-        println!("Current token: {:?}", $parser.current_token);
+        println!("[DBM] Current token: {:?}", $parser.current_token);
     };
 }
 
@@ -54,6 +54,29 @@ pub enum ASTNode {
         params: Vec<(String, VariableType)>,
         body: Vec<ASTNode>,
     },
+    LocalVariableDeclaration {
+        name: String,
+        var_type: VariableType,
+        value: Box<ASTNode>,
+    },
+    LocalVariableAssignment {
+        name: String,
+        value: Box<ASTNode>,
+    },
+    Return(Box<ASTNode>),
+    If {
+        condition: Box<ASTNode>,
+        body: Vec<ASTNode>,
+        else_body: Vec<ASTNode>,
+    },
+    While {
+        condition: Box<ASTNode>,
+        body: Vec<ASTNode>,
+    },
+    Call {
+        name: String,
+        args: Vec<ASTNode>,
+    },
 }
 
 pub struct Parser<'a> {
@@ -79,66 +102,35 @@ impl<'a> Parser<'a> {
     /// Parses the entire input into a root represented as an AST.
     pub fn parse(&mut self) -> ASTNode {
         let mut root = Vec::new();
-
         while self.current_token != Token::Eof {
             match self.current_token {
-                Token::Define => {
-                    // Parse a define statement and push it to the root.
-                    root.push(self.parse_define());
-                }
-                Token::State => {
-                    // Parse a state block and push it to the root.
-                    root.push(self.parse_state_block());
-                }
-                Token::Consts => {
-                    // Parse a consts block and push it to the root.
-                    root.push(self.parse_consts_block());
-                }
-                _ => {
-                    // Handle unexpected tokens by advancing to the next token.
-                    self.next_token();
-                }
+                Token::Define => root.push(self.parse_define()),
+                Token::State => root.push(self.parse_state_block()),
+                Token::Consts => root.push(self.parse_consts_block()),
+                _ => self.next_token(),
             }
         }
-
-        // Return the root as an ASTNode.
         ASTNode::Root(root)
     }
 
     /// Parses a define statement and returns it as an ASTNode.
     fn parse_define(&mut self) -> ASTNode {
-        self.next_token(); // Move past 'define'
-        if self.current_token != Token::LeftBrace {
-            panic!("Expected '{{' to start define block");
-        }
+        self.next_token();
+        self.expect_token(Token::LeftBrace, "Expected '{' to start define block");
 
-        self.next_token(); // Move past '{'
         let mut version = None;
         let mut schemes = Vec::new();
 
-        while self.current_token != Token::RightBrace && self.current_token != Token::Eof {
+        loop {
             match &self.current_token {
-                Token::Version => {
-                    version = Some(self.parse_version().1); // Store only the version string
-                }
-                Token::Schemes => {
-                    schemes = self.parse_schemes(); // Store the schemes as ASTNodes
-                }
-                _ => {
-                    // Handle unexpected tokens within the define block.
-                    self.next_token();
-                }
+                Token::Version => version = Some(self.parse_version().1),
+                Token::Schemes => schemes = self.parse_schemes(),
+                Token::RightBrace => break, // End of block
+                _ => self.next_token(),
             }
         }
 
-        // Ensure the define block is closed with '}'
-        if self.current_token != Token::RightBrace {
-            panic!("Expected '}}' to end define block");
-        }
-
         self.next_token(); // Move past '}'
-
-        // Construct and return the Define ASTNode with collected information
         ASTNode::Define { version, schemes }
     }
 
@@ -212,7 +204,7 @@ impl<'a> Parser<'a> {
         let mut params = Vec::new();
         // Loop for as long as the params are not closed with '}'
         while self.current_token != Token::RightBrace && self.current_token != Token::Eof {
-            let id = self.get_identifier();
+            let id = self.expect_identifier();
             self.expect_operator("=");
 
             let value = self.expect_value();
@@ -230,7 +222,7 @@ impl<'a> Parser<'a> {
         // Loop for as long as the state is not closed with '}'
         while self.current_token != Token::RightBrace && self.current_token != Token::Eof {
             let var_type = self.expect_variable_type();
-            let var_name = self.get_identifier();
+            let var_name = self.expect_identifier();
 
             state_variables.push(ASTNode::StateVariableDeclaration {
                 name: var_name,
@@ -258,7 +250,7 @@ impl<'a> Parser<'a> {
         // Loop for as long as the consts block is not closed with '}'
         while self.current_token != Token::RightBrace && self.current_token != Token::Eof {
             let var_type = self.expect_variable_type();
-            let var_name = self.get_identifier();
+            let var_name = self.expect_identifier();
             self.expect_operator("=");
             let value = self.expect_value();
 
@@ -282,6 +274,7 @@ impl<'a> Parser<'a> {
         ASTNode::Consts(const_variables)
     }
 
+    // ============ Helper functions ============
     fn expect_value(&mut self) -> ASTNode {
         // It could be an array so we need to check for '['
         if self.current_token == Token::LeftBracket {
@@ -301,79 +294,22 @@ impl<'a> Parser<'a> {
             let mut value = value.clone();
             self.next_token();
 
-            // Handle plus operator
-            while self.current_token == Token::Operator("+") {
+            // Unify the following
+            while let Token::Operator(op) = self.current_token {
                 self.next_token();
-                if let Token::Number(ref value2) = self.current_token {
-                    let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
-                    let next_value = value2.parse::<u128>().unwrap(); // TODO: Handle errors
+                if let Token::Number(ref next_value) = self.current_token {
+                    let original = value.parse::<u128>().unwrap();
+                    let next = next_value.parse::<u128>().unwrap();
 
-                    value = (original_value + next_value).to_string();
-                    self.next_token();
-                } else {
-                    panic!("Expected number after operator");
-                }
-            }
-            // Handle minus operator
-            while self.current_token == Token::Operator("-") {
-                self.next_token();
-                if let Token::Number(ref value2) = self.current_token {
-                    let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
-                    let next_value = value2.parse::<u128>().unwrap(); // TODO: Handle errors
-
-                    value = (original_value - next_value).to_string();
-                    self.next_token();
-                } else {
-                    panic!("Expected number after operator");
-                }
-            }
-            // Handle multiplication operator
-            while self.current_token == Token::Operator("*") {
-                self.next_token();
-                if let Token::Number(ref value2) = self.current_token {
-                    let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
-                    let next_value = value2.parse::<u128>().unwrap(); // TODO: Handle errors
-
-                    value = (original_value * next_value).to_string();
-                    self.next_token();
-                } else {
-                    panic!("Expected number after operator");
-                }
-            }
-            // Handle division operator
-            while self.current_token == Token::Operator("/") {
-                self.next_token();
-                if let Token::Number(ref value2) = self.current_token {
-                    let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
-                    let next_value = value2.parse::<u128>().unwrap(); // TODO: Handle errors
-
-                    value = (original_value / next_value).to_string();
-                    self.next_token();
-                } else {
-                    panic!("Expected number after operator");
-                }
-            }
-            // Handle modulo operator
-            while self.current_token == Token::Operator("%") {
-                self.next_token();
-                if let Token::Number(ref value2) = self.current_token {
-                    let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
-                    let next_value = value2.parse::<u128>().unwrap(); // TODO: Handle errors
-
-                    value = (original_value % next_value).to_string();
-                    self.next_token();
-                } else {
-                    panic!("Expected number after operator");
-                }
-            }
-            // Handle exponentiation operator
-            while self.current_token == Token::Operator("^") {
-                self.next_token();
-                if let Token::Number(ref value2) = self.current_token {
-                    let original_value = value.parse::<u128>().unwrap(); // TODO: Handle errors
-                    let next_value = value2.parse::<u32>().unwrap(); // TODO: Handle errors
-
-                    value = (original_value.pow(next_value)).to_string();
+                    value = match op {
+                        "+" => (original + next).to_string(),
+                        "-" => (original - next).to_string(),
+                        "*" => (original * next).to_string(),
+                        "/" => (original / next).to_string(),
+                        "%" => (original % next).to_string(),
+                        "^" => original.pow(next as u32).to_string(),
+                        _ => panic!("Unknown operator"),
+                    };
                     self.next_token();
                 } else {
                     panic!("Expected number after operator");
@@ -388,20 +324,29 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expect_token(&mut self, expected: Token<'a>, message: &str) {
-        if self.current_token != expected {
+    fn expect_string(&mut self, message: &str) -> String {
+        if let Token::String(value) = self.current_token {
+            self.next_token();
+            value.to_owned()
+        } else {
             panic!("{}", message);
         }
-        self.next_token();
     }
 
-    fn get_identifier(&mut self) -> String {
+    fn expect_identifier(&mut self) -> String {
         if let Token::Identifier(id) = self.current_token {
             self.next_token();
             id.to_owned()
         } else {
             panic!("Expected an identifier, found {:?}", self.current_token);
         }
+    }
+
+    fn expect_token(&mut self, expected: Token<'a>, message: &str) {
+        if self.current_token != expected {
+            panic!("{}", message);
+        }
+        self.next_token();
     }
 
     fn expect_operator(&mut self, expected_op: &str) {
@@ -413,15 +358,6 @@ impl<'a> Parser<'a> {
             }
         } else {
             panic!("Expected '{}' operator", expected_op);
-        }
-    }
-
-    fn expect_string(&mut self, message: &str) -> String {
-        if let Token::String(value) = self.current_token {
-            self.next_token();
-            value.to_owned()
-        } else {
-            panic!("{}", message);
         }
     }
 
