@@ -12,7 +12,6 @@ pub enum StateValue<'a> {
     Bool(bool),
     ByteArray(Vec<u8>),
     Address(PublicKeyBytes),
-    NumericMap(HashMap<Rc<str>, u128>),
     AddressMap(HashMap<Rc<str>, PublicKeyBytes>),
 }
 

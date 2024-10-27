@@ -11,6 +11,7 @@ use crate::data::DataObject;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
     pub address: String,
+    pub program_binary: Option<Vec<u8>>,
     pub data_account_ids: Vec<String>,
 }
 
@@ -51,8 +52,11 @@ impl DataAccountManager {
         hasher.update(id);
         let result = hasher.finalize().to_vec();
 
+        // We want to ensure that our hash is the size of
+        // a public key, so we can use it as an ID, now a
+        // sha3_384 hash is 48 bytes, so that works.
         if result.len() != PUB_BYTE_LEN {
-            return Err("Invalid public key length".into());
+            panic!("Invalid public key length");
         }
 
         let id = bs58::encode(result).into_string();
@@ -66,6 +70,7 @@ impl DataAccountManager {
             Some(data) => bincode::deserialize(&data)?,
             None => Account {
                 address: user_address.to_string(),
+                program_binary: None,
                 data_account_ids: Vec::with_capacity(1),
             },
         };
