@@ -13,6 +13,7 @@ pub enum Token<'a> {
     Address,
     U128,
     U8,
+    Bool,
     Table,
     PubFModifier,
     MutFModifier,
@@ -56,6 +57,7 @@ impl<'a> Lexer<'a> {
         keywords.insert("table", Token::Table);
         keywords.insert("u128", Token::U128);
         keywords.insert("u8", Token::U8);
+        keywords.insert("bool", Token::Bool);
         keywords.insert("pub", Token::PubFModifier);
         keywords.insert("mut", Token::MutFModifier);
         keywords.insert("return", Token::Return);

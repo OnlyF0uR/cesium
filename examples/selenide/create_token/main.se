@@ -1,26 +1,10 @@
-$define {
-  version = "^0.1.0"
-  schemes = [
-    {
-      // The token preset will add the required items to the state, consts,
-      // and includes all corresponding procedures (functions).
-      preset = "token@0.1.0"
-      params = {
-        decimals = 12
-        total_supply = 10e12 * 5
-        name = ["coolium", "COOL"]
-      }
-    }
-  ]
-}
-
 $include "main.seh"
 
 // Constructor
 init() {
   // Distribute tokens, only available in init()
   this.scheme.distTokens(this.caller, 10e12);
-  
+
   // Assign a initial value to our immutable state
   this.state.creator = this.caller;
 }
