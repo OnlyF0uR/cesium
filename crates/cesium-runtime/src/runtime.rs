@@ -59,11 +59,23 @@ mod tests {
             .expect("Failed to compile hello contract");
     }
 
+    fn compile_to_aot() {
+        Command::new("wasmedge")
+            .args([
+                "compile",
+                "../../target/wasm32-wasi/release/hello.wasm",
+                "../../target/wasm32-wasi/release/hello_aot.wasm",
+            ])
+            .status()
+            .expect("Failed to compile hello contract to AOT");
+    }
+
     #[test]
     fn test_execute_contract() {
         compile_hello();
+        compile_to_aot();
 
-        let mut file = File::open("../../target/wasm32-wasi/release/hello.wasm").unwrap();
+        let mut file = File::open("../../target/wasm32-wasi/release/hello_aot.wasm").unwrap();
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
         let result = execute_contract(&wasm_bytes).unwrap();
