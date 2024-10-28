@@ -10,6 +10,7 @@ pub enum Token<'a> {
     State,
     Consts,
     Include(&'a str),
+    Procedures,
     Address,
     U128,
     U8,
@@ -53,6 +54,7 @@ impl<'a> Lexer<'a> {
         keywords.insert("schemes", Token::Schemes);
         keywords.insert("$state", Token::State);
         keywords.insert("$consts", Token::Consts);
+        keywords.insert("$procedures", Token::Procedures);
         keywords.insert("address", Token::Address);
         keywords.insert("table", Token::Table);
         keywords.insert("u128", Token::U128);

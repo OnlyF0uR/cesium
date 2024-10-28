@@ -107,6 +107,7 @@ impl<'a> Parser<'a> {
                 Token::Define => root.push(self.parse_define()),
                 Token::State => root.push(self.parse_state_block()),
                 Token::Consts => root.push(self.parse_consts_block()),
+                Token::Procedures => root.push(self.parse_procedures()),
                 _ => self.next_token(),
             }
         }
@@ -272,6 +273,11 @@ impl<'a> Parser<'a> {
         );
 
         ASTNode::Consts(const_variables)
+    }
+
+    fn parse_procedures(&mut self) -> ASTNode {
+        // TODO: This
+        ASTNode::Procedures(Vec::new())
     }
 
     // ============ Helper functions ============
