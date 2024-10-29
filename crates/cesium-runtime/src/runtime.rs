@@ -8,10 +8,49 @@ use wasmedge_sys::WasiModule;
 
 use crate::functions::{h_change_state, h_get_state, h_write_state_mem, ContractState};
 
-pub fn execute_contract(
+pub fn initialize_contract(
     wasm_bytes: &[u8],
 ) -> Result<Vec<WasmValue>, Box<dyn std::error::Error + Send + Sync>> {
     let state = ContractState::new();
+    let mut wasi_module = WasiModule::create(None, None, None).unwrap();
+
+    let mut import_builder = ImportObjectBuilder::new("env", state).unwrap();
+    import_builder
+        .with_func::<(i32, i32), i32>("h_get_state", h_get_state)
+        .unwrap();
+    import_builder
+        .with_func::<i32, ()>("h_write_state_mem", h_write_state_mem)
+        .unwrap();
+    import_builder
+        .with_func::<(i32, i32, i32, i32), ()>("h_change_state", h_change_state)
+        .unwrap();
+    // TODO: Provide more functions that can be used in initialize, like define_state etc.
+    let mut import_object = import_builder.build();
+
+    let mut instances: HashMap<String, &mut dyn SyncInst> = HashMap::new();
+    instances.insert(wasi_module.name().to_string(), wasi_module.as_mut());
+    instances.insert(import_object.name().unwrap(), &mut import_object);
+
+    let mut vm = Vm::new(Store::new(None, instances).unwrap());
+
+    let module = Module::from_bytes(None, wasm_bytes)?;
+    vm.register_module(Some("wasm-app"), module)?;
+
+    // Args can be provided using params macro
+    let result = vm.run_func(Some("wasm-app"), "initialize", params!())?;
+    Ok(result)
+}
+
+pub fn execute_contract_function(
+    wasm_bytes: &[u8],
+    function_name: &str,
+    state: ContractState,
+    params: Vec<&[u8]>,
+) -> Result<Vec<WasmValue>, Box<dyn std::error::Error + Send + Sync>> {
+    if function_name.is_empty() || function_name == "initialize" {
+        return Err("Invalid function name".into());
+    }
+
     let mut wasi_module = WasiModule::create(None, None, None).unwrap();
 
     let mut import_builder = ImportObjectBuilder::new("env", state).unwrap();
@@ -35,8 +74,31 @@ pub fn execute_contract(
     let module = Module::from_bytes(None, wasm_bytes)?;
     vm.register_module(Some("wasm-app"), module)?;
 
+    // If we need to supply parameters to the function we must allocate memory for them
+
+    let (extern_instance, _) = vm
+        .store_mut()
+        .get_named_wasm_and_executor("wasm-app")
+        .unwrap();
+
+    let mut mem = extern_instance.get_memory_mut("memory")?;
+    let mut wasm_params: Vec<WasmValue> = Vec::new();
+
+    let mut offset = 0;
+    for param in &params {
+        mem.set_data(param, offset).unwrap();
+
+        wasm_params.push(WasmValue::from_i32(offset as i32));
+        wasm_params.push(WasmValue::from_i32(param.len() as i32));
+
+        offset += param.len() as u32;
+    }
+
+    // let mut func = extern_instance.get_func_mut(function_name)?;
+    // let result = executor.call_func(&mut func, wasm_params).unwrap();
+
     // Args can be provided using params macro
-    let result = vm.run_func(Some("wasm-app"), "entry_proc", params!())?;
+    let result = vm.run_func(Some("wasm-app"), function_name, wasm_params)?;
     Ok(result)
 }
 
@@ -74,14 +136,14 @@ mod tests {
     }
 
     #[test]
-    fn test_state_contract() {
+    fn test_initialize_state_contract() {
         compile("state");
         compile_to_aot("state");
 
         let mut file = File::open("../../target/wasm32-wasi/release/state_aot.wasm").unwrap();
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
-        let result = execute_contract(&wasm_bytes).unwrap();
+        let result = initialize_contract(&wasm_bytes).unwrap();
         assert_eq!(result.len(), 1);
 
         let v = result.get(0).unwrap();
@@ -89,14 +151,33 @@ mod tests {
     }
 
     #[test]
-    fn test_state_sdk_contract() {
+    fn test_initialize_state_sdk_contract() {
         compile("state-sdk");
         compile_to_aot("state_sdk");
 
         let mut file = File::open("../../target/wasm32-wasi/release/state_sdk_aot.wasm").unwrap();
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
-        let result = execute_contract(&wasm_bytes).unwrap();
+
+        // First initialize the contract
+        let result = initialize_contract(&wasm_bytes).unwrap();
+        assert_eq!(result.len(), 1);
+
+        let v = result.get(0).unwrap();
+        assert_eq!(v.to_i32(), 0);
+
+        // Now lets call a function on the contract
+        let mut data: HashMap<String, Vec<u8>> = HashMap::new();
+        data.insert("abc".to_string(), "cba".as_bytes().to_vec());
+        let state = ContractState::new_with_storage(data);
+
+        let key_str = "abc".as_bytes();
+        let cmp_str = "cba".as_bytes();
+
+        let result =
+            execute_contract_function(&wasm_bytes, "compare_state", state, vec![key_str, cmp_str])
+                .unwrap();
+
         assert_eq!(result.len(), 1);
 
         let v = result.get(0).unwrap();

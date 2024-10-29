@@ -18,6 +18,13 @@ impl ContractState {
             get_state_result: Vec::new(),
         }
     }
+
+    pub fn new_with_storage(storage: HashMap<String, Vec<u8>>) -> Self {
+        Self {
+            storage,
+            get_state_result: Vec::new(),
+        }
+    }
 }
 
 // Host function to get a value from storage by key
@@ -46,6 +53,7 @@ pub fn h_get_state(
 
     // Retrieve the value from the `ContractState`
     let return_value = state.storage.get(&key).cloned().unwrap_or_else(Vec::new);
+    state.get_state_result = return_value.clone();
     // println!("Get state: value = {:?}", return_value);
 
     // Return the length of the value
@@ -72,14 +80,15 @@ pub fn h_write_state_mem(
     let mut mem = inst.get_memory_mut("memory").unwrap();
 
     let value = state.get_state_result.clone();
+    // println!("Write state: value = {:?}", value);
 
     // Write the cached result to memory at the given offset
-    mem.set_data(value, offset as u32).unwrap();
+    mem.set_data(value.clone(), offset as u32).unwrap();
+    state.get_state_result = Vec::new(); // Clear the cached result
 
     // read from memory iven the offset
     // let mem_data = mem.get_data(offset as u32, value.len() as u32).unwrap();
-    // let mem_value = String::from_utf8(mem_data).unwrap();
-    // println!("Write state: mem_value = {:?}", mem_value);
+    // println!("Write state: value = {:?}", mem_data);
 
     Ok(vec![]) // Return an empty result, as this is a write-only function
 }

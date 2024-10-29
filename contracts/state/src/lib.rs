@@ -11,7 +11,7 @@ extern "C" {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn entry_proc() -> i32 {
+pub unsafe extern "C" fn initialize() -> i32 {
     let key = "example_key";
     let key_ptr = key.as_bytes().as_ptr();
     let key_len = key.len() as i32;

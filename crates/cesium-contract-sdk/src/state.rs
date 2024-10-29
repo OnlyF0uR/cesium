@@ -14,11 +14,7 @@ pub enum StateError {
 pub struct State;
 
 impl State {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn get(&self, key: &str) -> Result<Option<Vec<u8>>, StateError> {
+    pub fn get(key: &str) -> Result<Option<Vec<u8>>, StateError> {
         unsafe {
             let key_ptr = key.as_bytes().as_ptr();
             let key_len = key.len() as i32;
@@ -36,7 +32,7 @@ impl State {
         }
     }
 
-    pub fn set(&self, key: &str, value: &[u8]) -> Result<(), StateError> {
+    pub fn set(key: &str, value: &[u8]) -> Result<(), StateError> {
         unsafe {
             let key_ptr = key.as_bytes().as_ptr();
             let key_len = key.len() as i32;
@@ -48,26 +44,4 @@ impl State {
 
         Ok(())
     }
-}
-
-pub trait StateAccess {
-    fn state(&self) -> &State;
-
-    // Similar to, but then bin instead of json
-    // fn get_json<T: serde::de::DeserializeOwned>(&self, key: &str) -> Result<Option<T>, StateError> {
-    //     match self.state().get(key)? {
-    //         Some(value) => serde_json::from_str(&value)
-    //             .map(Some)
-    //             .map_err(|e| StateError::DeserializationError(e.to_string())),
-    //         None => Ok(None),
-    //     }
-    // }
-
-    // fn set_json<T: serde::Serialize>(&self, key: &str, value: &T) -> Result<(), StateError> {
-    //     let serialized = serde_json::to_string(value)
-    //         .map_err(|e| StateError::SerializationError(e.to_string()))?;
-    //     self.state().set(key, &serialized)
-    // }
-    // fn get_bin() {}
-    // fn set_bin() {}
 }
