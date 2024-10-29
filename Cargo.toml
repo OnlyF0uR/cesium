@@ -12,7 +12,7 @@ members = [
   "crates/selenide/se-opcodes",
   "crates/cesium-runtime",
   "contracts/hello",
-  "contracts/get_state",
+  "contracts/state",
 
   # Executables
   "cesium-node",

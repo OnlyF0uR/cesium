@@ -6,7 +6,7 @@ use wasmedge_sdk::{
 };
 use wasmedge_sys::WasiModule;
 
-use crate::functions::{h_get_state, h_write_state_mem, ContractState};
+use crate::functions::{h_change_state, h_get_state, h_write_state_mem, ContractState};
 
 pub fn execute_contract(
     wasm_bytes: &[u8],
@@ -20,6 +20,9 @@ pub fn execute_contract(
         .unwrap();
     import_builder
         .with_func::<i32, ()>("h_write_state_mem", h_write_state_mem)
+        .unwrap();
+    import_builder
+        .with_func::<(i32, i32, i32, i32), ()>("h_change_state", h_change_state)
         .unwrap();
     let mut import_object = import_builder.build();
 
@@ -79,20 +82,24 @@ mod tests {
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
         let result = execute_contract(&wasm_bytes).unwrap();
+        assert_eq!(result.len(), 1);
 
-        assert_eq!(result.len(), 0);
+        let v = result.get(0).unwrap();
+        assert_eq!(v.to_i32(), 0);
     }
 
     #[test]
     fn test_get_state_contract() {
-        compile("get-state");
-        compile_to_aot("get_state");
+        compile("state");
+        compile_to_aot("state");
 
-        let mut file = File::open("../../target/wasm32-wasi/release/get_state_aot.wasm").unwrap();
+        let mut file = File::open("../../target/wasm32-wasi/release/state_aot.wasm").unwrap();
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
         let result = execute_contract(&wasm_bytes).unwrap();
+        assert_eq!(result.len(), 1);
 
-        assert_eq!(result.len(), 0);
+        let v = result.get(0).unwrap();
+        assert_eq!(v.to_i32(), 0);
     }
 }
