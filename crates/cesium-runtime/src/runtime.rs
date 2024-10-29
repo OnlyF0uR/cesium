@@ -6,7 +6,7 @@ use wasmedge_sdk::{
 };
 use wasmedge_sys::WasiModule;
 
-use crate::functions::{get_state, update_state, ContractState};
+use crate::functions::{h_get_state, h_write_state_mem, ContractState};
 
 pub fn execute_contract(
     wasm_bytes: &[u8],
@@ -14,12 +14,12 @@ pub fn execute_contract(
     let state = ContractState::new();
     let mut wasi_module = WasiModule::create(None, None, None).unwrap();
 
-    let mut import_builder = ImportObjectBuilder::new("extern", state).unwrap();
+    let mut import_builder = ImportObjectBuilder::new("env", state).unwrap();
     import_builder
-        .with_func::<i32, ()>("get_state", get_state)
+        .with_func::<(i32, i32), i32>("h_get_state", h_get_state)
         .unwrap();
     import_builder
-        .with_func::<(), i32>("update_state", update_state)
+        .with_func::<i32, ()>("h_write_state_mem", h_write_state_mem)
         .unwrap();
     let mut import_object = import_builder.build();
 
@@ -45,7 +45,7 @@ mod tests {
     use std::io::Read;
     use std::process::Command;
 
-    fn compile_hello() {
+    fn compile(package: &str) {
         Command::new("cargo")
             .args([
                 "build",
@@ -53,29 +53,42 @@ mod tests {
                 "wasm32-wasi",
                 "--release",
                 "--package",
-                "hello",
+                package,
             ])
             .status()
-            .expect("Failed to compile hello contract");
+            .expect("Failed to compile contract");
     }
 
-    fn compile_to_aot() {
+    fn compile_to_aot(package: &str) {
         Command::new("wasmedge")
             .args([
                 "compile",
-                "../../target/wasm32-wasi/release/hello.wasm",
-                "../../target/wasm32-wasi/release/hello_aot.wasm",
+                &format!("../../target/wasm32-wasi/release/{}.wasm", package),
+                &format!("../../target/wasm32-wasi/release/{}_aot.wasm", package),
             ])
             .status()
-            .expect("Failed to compile hello contract to AOT");
+            .expect("Failed to compile contract to AOT");
     }
 
     #[test]
-    fn test_execute_contract() {
-        compile_hello();
-        compile_to_aot();
+    fn test_hello_contract() {
+        compile("hello");
+        compile_to_aot("hello");
 
         let mut file = File::open("../../target/wasm32-wasi/release/hello_aot.wasm").unwrap();
+        let mut wasm_bytes = Vec::new();
+        file.read_to_end(&mut wasm_bytes).unwrap();
+        let result = execute_contract(&wasm_bytes).unwrap();
+
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn test_get_state_contract() {
+        compile("get-state");
+        compile_to_aot("get_state");
+
+        let mut file = File::open("../../target/wasm32-wasi/release/get_state_aot.wasm").unwrap();
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
         let result = execute_contract(&wasm_bytes).unwrap();
