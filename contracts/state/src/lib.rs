@@ -2,6 +2,7 @@ extern "C" {
     fn h_get_state(key_ptr: *const u8, key_len: i32) -> i32;
     fn h_write_state_mem(ptr: *mut u8);
     fn h_change_state(key_ptr: *const u8, key_len: i32, value_ptr: *const u8, value_len: i32);
+    fn h_commit_state();
 }
 
 #[no_mangle]
@@ -45,6 +46,8 @@ pub unsafe extern "C" fn initialize() -> i32 {
         println!("State value is {} (expected: new_value)", s);
         return 1;
     }
+
+    h_commit_state();
 
     0
 }

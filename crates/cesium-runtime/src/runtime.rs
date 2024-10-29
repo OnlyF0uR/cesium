@@ -6,12 +6,16 @@ use wasmedge_sdk::{
 };
 use wasmedge_sys::WasiModule;
 
-use crate::functions::{h_change_state, h_get_state, h_write_state_mem, ContractState};
+use crate::{
+    functions::{h_change_state, h_commit_state, h_get_state, h_write_state_mem},
+    state::ContractState,
+};
 
 pub fn initialize_contract(
     wasm_bytes: &[u8],
+    account_id: &str,
 ) -> Result<Vec<WasmValue>, Box<dyn std::error::Error + Send + Sync>> {
-    let state = ContractState::new();
+    let state = ContractState::new(account_id.to_owned());
     let mut wasi_module = WasiModule::create(None, None, None).unwrap();
 
     let mut import_builder = ImportObjectBuilder::new("env", state).unwrap();
@@ -23,6 +27,9 @@ pub fn initialize_contract(
         .unwrap();
     import_builder
         .with_func::<(i32, i32, i32, i32), ()>("h_change_state", h_change_state)
+        .unwrap();
+    import_builder
+        .with_func::<(), ()>("h_commit_state", h_commit_state)
         .unwrap();
     // TODO: Provide more functions that can be used in initialize, like define_state etc.
     let mut import_object = import_builder.build();
@@ -62,6 +69,9 @@ pub fn execute_contract_function(
         .unwrap();
     import_builder
         .with_func::<(i32, i32, i32, i32), ()>("h_change_state", h_change_state)
+        .unwrap();
+    import_builder
+        .with_func::<(), ()>("h_commit_state", h_commit_state)
         .unwrap();
     let mut import_object = import_builder.build();
 
@@ -143,7 +153,7 @@ mod tests {
         let mut file = File::open("../../target/wasm32-wasi/release/state_aot.wasm").unwrap();
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
-        let result = initialize_contract(&wasm_bytes).unwrap();
+        let result = initialize_contract(&wasm_bytes, "").unwrap();
         assert_eq!(result.len(), 1);
 
         let v = result.get(0).unwrap();
@@ -160,7 +170,7 @@ mod tests {
         file.read_to_end(&mut wasm_bytes).unwrap();
 
         // First initialize the contract
-        let result = initialize_contract(&wasm_bytes).unwrap();
+        let result = initialize_contract(&wasm_bytes, "").unwrap();
         assert_eq!(result.len(), 1);
 
         let v = result.get(0).unwrap();
@@ -168,17 +178,18 @@ mod tests {
 
         // Specify the current state prior to running the function
         let mut data: HashMap<String, Vec<u8>> = HashMap::new();
-        data.insert("my_key".to_string(), "my_value".as_bytes().to_vec());
-        let state = ContractState::new_with_storage(data);
+        data.insert("example_str".to_string(), "my_value".as_bytes().to_vec());
+        let state = ContractState::new_with_storage("", data);
 
         // Define the parameters that will be passed in the function
-        let key_str = "my_key".as_bytes();
-        let cmp_str = "my_value".as_bytes();
-
         // Execute the function
-        let result =
-            execute_contract_function(&wasm_bytes, "compare_state", state, vec![key_str, cmp_str])
-                .unwrap();
+        let result = execute_contract_function(
+            &wasm_bytes,
+            "compare_state",
+            state,
+            vec!["my_value".as_bytes()],
+        )
+        .unwrap();
 
         assert_eq!(result.len(), 1);
 

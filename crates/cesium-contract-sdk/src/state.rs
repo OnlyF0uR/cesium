@@ -2,6 +2,7 @@ extern "C" {
     fn h_get_state(key_ptr: *const u8, key_len: i32) -> i32;
     fn h_write_state_mem(ptr: *mut u8);
     fn h_change_state(key_ptr: *const u8, key_len: i32, value_ptr: *const u8, value_len: i32);
+    fn h_commit_state();
 }
 
 #[derive(Debug)]
@@ -9,6 +10,7 @@ pub enum StateError {
     SerializationError(String),
     DeserializationError(String),
     InvalidUtf8,
+    NoReturnData,
 }
 
 pub struct State;
@@ -36,12 +38,18 @@ impl State {
         unsafe {
             let key_ptr = key.as_bytes().as_ptr();
             let key_len = key.len() as i32;
-            let value_ptr = value.as_ptr();
+            let value_ptr: *const u8 = value.as_ptr();
             let value_len = value.len() as i32;
 
             h_change_state(key_ptr, key_len, value_ptr, value_len);
         }
 
         Ok(())
+    }
+
+    pub fn commit() {
+        unsafe {
+            h_commit_state();
+        }
     }
 }

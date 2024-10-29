@@ -196,6 +196,18 @@ version = "0.1.0"
 [[package]]
 name = "cesium-contract-sdk"
 version = "0.1.0"
+dependencies = [
+ "cesium-contract-sdk-macros",
+]
+
+[[package]]
+name = "cesium-contract-sdk-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
 
 [[package]]
 name = "cesium-econ"
@@ -228,6 +240,8 @@ version = "0.1.0"
 name = "cesium-runtime"
 version = "0.1.0"
 dependencies = [
+ "tokio",
+ "wasmedge-macro",
  "wasmedge-sdk",
  "wasmedge-sys",
 ]
@@ -1471,6 +1485,7 @@ name = "state-sdk"
 version = "0.1.0"
 dependencies = [
  "cesium-contract-sdk",
+ "cesium-contract-sdk-macros",
 ]
 
 [[package]]

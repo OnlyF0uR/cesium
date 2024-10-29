@@ -1,31 +1,7 @@
-use std::collections::HashMap;
-
 use wasmedge_sdk::{error::CoreError, CallingFrame, Instance, WasmValue};
 use wasmedge_sys::AsInstance;
 
-// State types
-#[derive(Clone, Debug)]
-pub struct ContractState {
-    storage: HashMap<String, Vec<u8>>, // Storage for key-value pairs
-    get_state_result: Vec<u8>,
-}
-
-impl ContractState {
-    // Constructor for ContractState
-    pub fn new() -> Self {
-        Self {
-            storage: HashMap::new(), // Initialize storage
-            get_state_result: Vec::new(),
-        }
-    }
-
-    pub fn new_with_storage(storage: HashMap<String, Vec<u8>>) -> Self {
-        Self {
-            storage,
-            get_state_result: Vec::new(),
-        }
-    }
-}
+use crate::state::ContractState;
 
 // Host function to get a value from storage by key
 pub fn h_get_state(
@@ -134,4 +110,15 @@ pub fn h_change_state(
     // println!("Change state: new_key = {:?}", debug_v);
 
     Ok(vec![]) // Return the length as a WasmValue
+}
+
+pub fn h_commit_state(
+    state: &mut ContractState,
+    _inst: &mut Instance,
+    _caller: &mut CallingFrame,
+    _input: Vec<WasmValue>,
+) -> Result<Vec<WasmValue>, CoreError> {
+    println!("Commit state: {:?}", state.storage);
+
+    Ok(vec![]) // Return an empty result
 }
