@@ -74,11 +74,11 @@ mod tests {
     }
 
     #[test]
-    fn test_hello_contract() {
-        compile("hello");
-        compile_to_aot("hello");
+    fn test_state_contract() {
+        compile("state");
+        compile_to_aot("state");
 
-        let mut file = File::open("../../target/wasm32-wasi/release/hello_aot.wasm").unwrap();
+        let mut file = File::open("../../target/wasm32-wasi/release/state_aot.wasm").unwrap();
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
         let result = execute_contract(&wasm_bytes).unwrap();
@@ -89,11 +89,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_state_contract() {
-        compile("state");
-        compile_to_aot("state");
+    fn test_state_sdk_contract() {
+        compile("state-sdk");
+        compile_to_aot("state_sdk");
 
-        let mut file = File::open("../../target/wasm32-wasi/release/state_aot.wasm").unwrap();
+        let mut file = File::open("../../target/wasm32-wasi/release/state_sdk_aot.wasm").unwrap();
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
         let result = execute_contract(&wasm_bytes).unwrap();

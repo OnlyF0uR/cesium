@@ -1,0 +1,11 @@
+[package]
+name = "cesium-contract-sdk"
+edition = "2021"
+version.workspace = true
+license = "GPL-3.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]

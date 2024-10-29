@@ -11,8 +11,9 @@ members = [
   "crates/selenide/se-vm",
   "crates/selenide/se-opcodes",
   "crates/cesium-runtime",
-  "contracts/hello",
+  "crates/cesium-contract-sdk",
   "contracts/state",
+  "contracts/state_sdk",
 
   # Executables
   "cesium-node",
@@ -60,3 +61,4 @@ se-compiler = { path = "crates/selenide/se-compiler" }
 se-vm = { path = "crates/selenide/se-vm" }
 se-opcodes = { path = "crates/selenide/se-opcodes" }
 cesium-runtime = { path = "crates/cesium-runtime" }
+cesium-contract-sdk = { path = "crates/cesium-contract-sdk" }
