@@ -5,7 +5,7 @@ all: build
 
 # Build the specific packages with the default target
 build:
-	cargo build --exclude cesium-contract-sdk --exclude state --exclude state-sdk --workspace
+	cargo build --exclude cesium-contract-sdk --exclude state --exclude state-sdk --workspace --verbose
 
 # Build the WASM packages
 wasm:
@@ -14,7 +14,7 @@ wasm:
 	cargo build --target wasm32-wasi --release --package state-sdk
 
 test: 
-	cargo test --exclude cesium-contract-sdk --exclude state --exclude state-sdk --workspace
+	cargo test --exclude cesium-contract-sdk --exclude state --exclude state-sdk --workspace --verbose
 
 # Build both
 all: build wasm
