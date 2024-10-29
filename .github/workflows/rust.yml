@@ -21,6 +21,9 @@ jobs:
       run: |
         curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
         source $HOME/.wasmedge/env
+        echo "$HOME/.wasmedge/bin" >> $GITHUB_PATH
+        echo "$HOME/.wasmedge/lib" >> $GITHUB_ENV
+
 
     - name: Install Rust
       uses: actions-rs/toolchain@v1
@@ -53,4 +56,6 @@ jobs:
       run: make
 
     - name: Run tests
+      env:
+        LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}:$HOME/.wasmedge/lib
       run: make test
