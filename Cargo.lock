@@ -190,6 +190,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cesium-cli"
+version = "0.1.0"
+
+[[package]]
 name = "cesium-contract-sdk"
 version = "0.1.0"
 
@@ -1308,28 +1312,6 @@ dependencies = [
  "ring",
  "untrusted",
 ]
-
-[[package]]
-name = "se-compiler"
-version = "0.1.0"
-
-[[package]]
-name = "se-opcodes"
-version = "0.1.0"
-dependencies = [
- "cesium-material",
-]
-
-[[package]]
-name = "se-vm"
-version = "0.1.0"
-dependencies = [
- "cesium-material",
-]
-
-[[package]]
-name = "selc"
-version = "0.1.0"
 
 [[package]]
 name = "serde"

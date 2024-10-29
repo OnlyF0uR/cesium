@@ -1,12 +1,6 @@
-// external c function for get_state
 extern "C" {
-    // Pasa pointer to the key value and the length of the key
-    // This is so we know how much to allocate
     fn h_get_state(key_ptr: *const u8, key_len: i32) -> i32;
-    // Write the state to memory
-    // This is for writing to the buffer
     fn h_write_state_mem(ptr: *mut u8);
-
     fn h_change_state(key_ptr: *const u8, key_len: i32, value_ptr: *const u8, value_len: i32);
 }
 
@@ -52,5 +46,5 @@ pub unsafe extern "C" fn initialize() -> i32 {
         return 1;
     }
 
-    return 0;
+    0
 }

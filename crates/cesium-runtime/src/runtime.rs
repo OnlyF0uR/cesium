@@ -166,14 +166,16 @@ mod tests {
         let v = result.get(0).unwrap();
         assert_eq!(v.to_i32(), 0);
 
-        // Now lets call a function on the contract
+        // Specify the current state prior to running the function
         let mut data: HashMap<String, Vec<u8>> = HashMap::new();
-        data.insert("abc".to_string(), "cba".as_bytes().to_vec());
+        data.insert("my_key".to_string(), "my_value".as_bytes().to_vec());
         let state = ContractState::new_with_storage(data);
 
-        let key_str = "abc".as_bytes();
-        let cmp_str = "cba".as_bytes();
+        // Define the parameters that will be passed in the function
+        let key_str = "my_key".as_bytes();
+        let cmp_str = "my_value".as_bytes();
 
+        // Execute the function
         let result =
             execute_contract_function(&wasm_bytes, "compare_state", state, vec![key_str, cmp_str])
                 .unwrap();

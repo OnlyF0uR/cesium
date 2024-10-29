@@ -7,17 +7,16 @@ members = [
   "crates/cesium-mempool",
   "crates/cesium-state",
   "crates/cesium-econ",
-  "crates/selenide/se-compiler",
-  "crates/selenide/se-vm",
-  "crates/selenide/se-opcodes",
   "crates/cesium-runtime",
   "crates/cesium-contract-sdk",
+
+  # Contracts
   "contracts/state",
   "contracts/state_sdk",
 
   # Executables
   "cesium-node",
-  "selc"
+  "cesium-cli",
 ]
 
 [workspace.package]
@@ -57,8 +56,5 @@ cesium-material = { path = "crates/cesium-material" }
 cesium-mempool = { path = "crates/cesium-mempool" }
 cesium-state = { path = "crates/cesium-state" }
 cesium-econ = { path = "crates/cesium-econ" }
-se-compiler = { path = "crates/selenide/se-compiler" }
-se-vm = { path = "crates/selenide/se-vm" }
-se-opcodes = { path = "crates/selenide/se-opcodes" }
 cesium-runtime = { path = "crates/cesium-runtime" }
 cesium-contract-sdk = { path = "crates/cesium-contract-sdk" }
