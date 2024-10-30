@@ -7,15 +7,15 @@ use wasmedge_sdk::{
 use wasmedge_sys::{ImportModule, WasiModule};
 
 use crate::{
+    env::ContractEnv,
     functions::{
-        h_change_state, h_commit_state, h_define_state, h_get_state, h_initialize_data_account,
-        h_initialize_independent_data_account, h_update_data_account, h_write_address_mem,
-        h_write_state_mem,
+        h_change_state, h_commit_account_data, h_commit_all, h_commit_state, h_define_state,
+        h_get_state, h_initialize_data_account, h_initialize_independent_data_account,
+        h_update_data_account, h_write_address_mem, h_write_state_mem,
     },
-    state::ContractState,
 };
 
-fn create_import_builder(state: ContractState) -> ImportModule<ContractState> {
+fn create_import_builder(state: ContractEnv) -> ImportModule<ContractEnv> {
     let mut import_builder = ImportObjectBuilder::new("env", state).unwrap();
     import_builder
         .with_func::<i32, ()>("h_define_state", h_define_state)
@@ -50,6 +50,12 @@ fn create_import_builder(state: ContractState) -> ImportModule<ContractState> {
     import_builder
         .with_func::<(i32, i32, i32, i32), ()>("h_update_data_account", h_update_data_account)
         .unwrap();
+    import_builder
+        .with_func::<(), ()>("h_commit_account_data", h_commit_account_data)
+        .unwrap();
+    import_builder
+        .with_func::<(), ()>("h_commit_all", h_commit_all)
+        .unwrap();
     // TODO: Provide more functions that can be used in initialize, like define_state etc.
     import_builder.build()
 }
@@ -59,9 +65,9 @@ pub fn initialize_contract(
     account_id: &str,
     caller_id: &str,
 ) -> Result<Vec<WasmValue>, Box<dyn std::error::Error + Send + Sync>> {
-    let state = ContractState::new(account_id, caller_id);
+    let state = ContractEnv::new(account_id, caller_id);
     let mut wasi_module = WasiModule::create(None, None, None).unwrap();
-    let mut import_object: ImportModule<ContractState> = create_import_builder(state);
+    let mut import_object: ImportModule<ContractEnv> = create_import_builder(state);
 
     let mut instances: HashMap<String, &mut dyn SyncInst> = HashMap::new();
     instances.insert(wasi_module.name().to_string(), wasi_module.as_mut());
@@ -80,7 +86,7 @@ pub fn initialize_contract(
 pub fn execute_contract_function(
     wasm_bytes: &[u8],
     function_name: &str,
-    state: ContractState,
+    state: ContractEnv,
     params: Vec<&[u8]>,
 ) -> Result<Vec<WasmValue>, Box<dyn std::error::Error + Send + Sync>> {
     if function_name.is_empty() || function_name == "initialize" {
@@ -88,7 +94,7 @@ pub fn execute_contract_function(
     }
 
     let mut wasi_module = WasiModule::create(None, None, None).unwrap();
-    let mut import_object: ImportModule<ContractState> = create_import_builder(state);
+    let mut import_object: ImportModule<ContractEnv> = create_import_builder(state);
 
     let mut instances: HashMap<String, &mut dyn SyncInst> = HashMap::new();
     instances.insert(wasi_module.name().to_string(), wasi_module.as_mut());
@@ -195,7 +201,7 @@ mod tests {
 
         // Specify the current state prior to running the function
         let data = vec!["my_value".as_bytes().to_vec()]; // "my_value" on index 0
-        let state = ContractState::new_with_storage("111examplecontract", "111exampleuser", data);
+        let state = ContractEnv::new_with_state("111examplecontract", "111exampleuser", data);
 
         // Define the parameters that will be passed in the function
         // Execute the function

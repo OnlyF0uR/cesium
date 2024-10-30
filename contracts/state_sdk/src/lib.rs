@@ -1,6 +1,6 @@
 use std::slice;
 
-use cesium_contract_sdk::state::State;
+use cesium_contract_sdk::data::State;
 use cesium_contract_sdk_macros::cesium;
 
 #[cesium(contract_state)]

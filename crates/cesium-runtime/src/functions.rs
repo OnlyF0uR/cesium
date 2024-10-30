@@ -1,10 +1,10 @@
 use wasmedge_sdk::{error::CoreError, CallingFrame, Instance, WasmValue};
 use wasmedge_sys::AsInstance;
 
-use crate::state::ContractState;
+use crate::env::ContractEnv;
 
 pub fn h_define_state(
-    state: &mut ContractState,
+    env: &mut ContractEnv,
     _inst: &mut Instance,
     _caller: &mut CallingFrame,
     input: Vec<WasmValue>,
@@ -16,23 +16,23 @@ pub fn h_define_state(
         ));
     }
 
-    if state.storage_initialized {
+    if env.state.initialized {
         return Err(CoreError::Execution(
             wasmedge_sdk::error::CoreExecutionError::FuncSigMismatch,
         ));
     }
 
-    state.storage_initialized = true;
+    env.state.initialized = true;
 
     let storage_len = input[0].to_i32() as usize;
-    state.storage = vec![Vec::new(); storage_len];
+    env.state.data = vec![Vec::new(); storage_len];
 
     Ok(vec![])
 }
 
 // Host function to get a value from storage by key
 pub fn h_get_state(
-    state: &mut ContractState,
+    env: &mut ContractEnv,
     _inst: &mut Instance,
     _caller: &mut CallingFrame,
     input: Vec<WasmValue>,
@@ -46,21 +46,21 @@ pub fn h_get_state(
 
     // Extract pointer and length for the key
     let item_index = input[0].to_i32() as usize;
-    if item_index >= state.storage.len() {
+    if item_index >= env.state.data.len() {
         return Err(CoreError::Execution(
             wasmedge_sdk::error::CoreExecutionError::FuncSigMismatch,
         ));
     }
 
-    let item_data = state.storage[item_index].clone();
+    let item_data = env.state.data[item_index].clone();
     let item_len = item_data.len() as i32;
 
-    state.get_state_result = item_data;
+    env.state.cached_value = item_data;
     Ok(vec![WasmValue::from_i32(item_len)])
 }
 
 pub fn h_write_state_mem(
-    state: &mut ContractState,
+    env: &mut ContractEnv,
     inst: &mut Instance,
     _caller: &mut CallingFrame,
     input: Vec<WasmValue>,
@@ -77,12 +77,12 @@ pub fn h_write_state_mem(
     // Get the WebAssembly memory
     let mut mem = inst.get_memory_mut("memory").unwrap();
 
-    let value = state.get_state_result.clone();
+    let value = env.state.cached_value.clone();
     // println!("Write state: value = {:?}", value);
 
     // Write the cached result to memory at the given offset
     mem.set_data(value.clone(), offset as u32).unwrap();
-    state.get_state_result.clear(); // Clear the cached result
+    env.state.cached_value.clear(); // Clear the cached result
 
     // read from memory given the offset
     // let mem_data = mem.get_data(offset as u32, value.len() as u32).unwrap();
@@ -92,7 +92,7 @@ pub fn h_write_state_mem(
 }
 
 pub fn h_change_state(
-    state: &mut ContractState,
+    env: &mut ContractEnv,
     inst: &mut Instance,
     _caller: &mut CallingFrame,
     input: Vec<WasmValue>,
@@ -106,7 +106,7 @@ pub fn h_change_state(
 
     // Extract pointers and lengths for key and value
     let item_index = input[0].to_i32() as usize;
-    if item_index >= state.storage.len() {
+    if item_index >= env.state.data.len() {
         return Err(CoreError::Execution(
             wasmedge_sdk::error::CoreExecutionError::FuncSigMismatch,
         ));
@@ -119,24 +119,24 @@ pub fn h_change_state(
     let mem = inst.get_memory_mut("memory").unwrap();
 
     let value = mem.get_data(value_ptr, value_len).unwrap();
-    state.storage[item_index] = value; // Update the value in storage
+    env.state.data[item_index] = value; // Update the value in storage
 
     Ok(vec![]) // Return the length as a WasmValue
 }
 
 pub fn h_commit_state(
-    state: &mut ContractState,
+    env: &mut ContractEnv,
     _inst: &mut Instance,
     _caller: &mut CallingFrame,
     _input: Vec<WasmValue>,
 ) -> Result<Vec<WasmValue>, CoreError> {
-    println!("Commit state: {:?}", state.storage);
+    println!("Commit state: {:?}", env.state.data);
 
     Ok(vec![]) // Return an empty result
 }
 
 pub fn h_initialize_data_account(
-    state: &mut ContractState,
+    env: &mut ContractEnv,
     inst: &mut Instance,
     _caller: &mut CallingFrame,
     input: Vec<WasmValue>,
@@ -158,7 +158,7 @@ pub fn h_initialize_data_account(
 
     let mem = inst.get_memory_mut("memory").unwrap();
     let owner = mem.get_data(owner_ptr, owner_len).unwrap();
-    let update_auth = state.contract_id.clone();
+    let update_auth = env.caller_id.clone();
     let data = mem.get_data(data_ptr, data_len).unwrap();
 
     println!("Owner: {:?}", owner);
@@ -175,7 +175,7 @@ pub fn h_initialize_data_account(
 }
 
 pub fn h_initialize_independent_data_account(
-    _state: &mut ContractState,
+    _env: &mut ContractEnv,
     inst: &mut Instance,
     _caller: &mut CallingFrame,
     input: Vec<WasmValue>,
@@ -218,7 +218,7 @@ pub fn h_initialize_independent_data_account(
 }
 
 pub fn h_write_address_mem(
-    state: &mut ContractState,
+    env: &mut ContractEnv,
     inst: &mut Instance,
     _caller: &mut CallingFrame,
     input: Vec<WasmValue>,
@@ -236,17 +236,17 @@ pub fn h_write_address_mem(
     let mut mem = inst.get_memory_mut("memory").unwrap();
 
     // Get the cached address of the new account
-    let value = state.get_address_result.clone();
+    let value = env.account_data.cached_value.clone();
 
     // Write the cached address to memory at the given offset
     mem.set_data(value.clone(), offset as u32).unwrap();
-    state.get_address_result.clear(); // Clear the cached result
+    env.account_data.cached_value.clear(); // Clear the cached result
 
     Ok(vec![])
 }
 
 pub fn h_update_data_account(
-    state: &mut ContractState,
+    env: &mut ContractEnv,
     inst: &mut Instance,
     _caller: &mut CallingFrame,
     input: Vec<WasmValue>,
@@ -269,8 +269,7 @@ pub fn h_update_data_account(
 
     let mem = inst.get_memory_mut("memory").unwrap();
     let account = mem.get_data(account_ptr, account_len).unwrap();
-    let account_str = std::str::from_utf8(&account).unwrap();
-    if account_str == &state.contract_id || account_str == &state.caller_id {
+    if account == env.contract_id || account == env.caller_id {
         // We already now that this is impossible
         return Err(CoreError::Execution(
             wasmedge_sdk::error::CoreExecutionError::FuncSigMismatch,
@@ -283,4 +282,27 @@ pub fn h_update_data_account(
     // TODO: Set the account state if it exists
 
     Ok(vec![])
+}
+
+pub fn h_commit_account_data(
+    env: &mut ContractEnv,
+    _inst: &mut Instance,
+    _caller: &mut CallingFrame,
+    _input: Vec<WasmValue>,
+) -> Result<Vec<WasmValue>, CoreError> {
+    println!("Commit account data: {:?}", env.account_data.data);
+
+    Ok(vec![]) // Return an empty result
+}
+
+pub fn h_commit_all(
+    env: &mut ContractEnv,
+    _inst: &mut Instance,
+    _caller: &mut CallingFrame,
+    _input: Vec<WasmValue>,
+) -> Result<Vec<WasmValue>, CoreError> {
+    println!("Commit state: {:?}", env.state.data);
+    println!("Commit account data: {:?}", env.account_data.data);
+
+    Ok(vec![]) // Return an empty result
 }

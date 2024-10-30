@@ -3,14 +3,14 @@
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{OnceCell, RwLock};
 
-use crate::state::ContractState;
+use crate::env::ContractEnv;
 
 // NOTE: For now we will keep the state in memory,
 // but normally it would be stored on disk when
 // transaction is committed
 
 pub struct LiqState {
-    pub liquid_states: RwLock<HashMap<String, ContractState>>,
+    pub liquid_states: RwLock<HashMap<String, ContractEnv>>,
 }
 
 impl LiqState {
@@ -39,7 +39,7 @@ async fn get_instance() -> Arc<LiqState> {
 
 pub async fn get_liquid_state(
     contract_id: &str,
-) -> Result<ContractState, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<ContractEnv, Box<dyn std::error::Error + Send + Sync>> {
     let instance = get_instance().await;
 
     let states = instance.liquid_states.read().await;
@@ -50,7 +50,7 @@ pub async fn get_liquid_state(
 
 pub async fn update_liquid_state(
     contract_id: &str,
-    contract_state: &ContractState,
+    contract_state: &ContractEnv,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let instance = get_instance().await;
 
@@ -89,9 +89,9 @@ pub async fn commit_state(
 pub async fn load_state(
     contract_id: &str,
     caller_id: &str,
-) -> Result<ContractState, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<ContractEnv, Box<dyn std::error::Error + Send + Sync>> {
     // TODO: Load state from disk
-    let state = ContractState::new(contract_id, caller_id);
+    let state = ContractEnv::new(contract_id, caller_id);
 
     let instance = get_instance().await;
 

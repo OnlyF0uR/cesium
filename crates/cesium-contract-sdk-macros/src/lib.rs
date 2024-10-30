@@ -26,7 +26,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         if autocommit {
             let commit_state = quote! {
-              cesium_contract_sdk::state::State::commit();
+              cesium_contract_sdk::data::commit_all();
             };
 
             // Check if the function has a return type
@@ -146,7 +146,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
             if field_type.to_token_stream().to_string() == "String" {
                 to_bytes = quote! {
                     #to_bytes
-                    pub fn #get_indent(&mut self) -> Result<String, cesium_contract_sdk::state::StateError> {
+                    pub fn #get_indent(&mut self) -> Result<String, cesium_contract_sdk::data::StateError> {
                       if self.#field_name_cached {
                         return Ok(self.#field_ident.clone());
                       }
@@ -158,7 +158,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                       let result = result.unwrap();
                       if result.is_none() {
-                        return Err(cesium_contract_sdk::state::StateError::NoReturnData);
+                        return Err(cesium_contract_sdk::data::StateError::NoReturnData);
                       }
 
                       let result_str = std::str::from_utf8(&result.unwrap()).unwrap().to_string();
@@ -167,7 +167,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                       Ok(result_str)
                     }
-                    pub fn #set_indent(&mut self, value: &str) -> Result<(), cesium_contract_sdk::state::StateError> {
+                    pub fn #set_indent(&mut self, value: &str) -> Result<(), cesium_contract_sdk::data::StateError> {
                       let result = State::set(#field_index, value.as_bytes());
                       if result.is_ok() {
                         self.#field_ident = value.to_owned();
@@ -179,7 +179,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
             } else if field_type.to_token_stream().to_string() == "Vec < u8 >" {
                 to_bytes = quote! {
                     #to_bytes
-                    pub fn #get_indent(&mut self) -> Result<Vec<u8>, cesium_contract_sdk::state::StateError> {
+                    pub fn #get_indent(&mut self) -> Result<Vec<u8>, cesium_contract_sdk::data::StateError> {
                       if self.#field_name_cached {
                         return Ok(self.#field_ident.clone());
                       }
@@ -191,7 +191,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                       let result = result.unwrap();
                       if result.is_none() {
-                        return Err(cesium_contract_sdk::state::StateError::NoReturnData);
+                        return Err(cesium_contract_sdk::data::StateError::NoReturnData);
                       }
 
                       let result = result.unwrap();
@@ -201,7 +201,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                       Ok(result)
                     }
-                    pub fn #set_indent(&mut self, value: Vec<u8>) -> Result<(), cesium_contract_sdk::state::StateError> {
+                    pub fn #set_indent(&mut self, value: Vec<u8>) -> Result<(), cesium_contract_sdk::data::StateError> {
                       let result = State::set(#field_index, &value);
                       if result.is_ok() {
                         self.#field_ident = value;
@@ -213,7 +213,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
             } else if field_type.to_token_stream().to_string() == "bool" {
                 to_bytes = quote! {
                     #to_bytes
-                    pub fn #get_indent(&mut self) -> Result<bool, cesium_contract_sdk::state::StateError> {
+                    pub fn #get_indent(&mut self) -> Result<bool, cesium_contract_sdk::data::StateError> {
                       if self.#field_name_cached {
                         return Ok(self.#field_ident);
                       }
@@ -225,7 +225,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                       let result = result.unwrap();
                       if result.is_none() {
-                        return Err(cesium_contract_sdk::state::StateError::NoReturnData);
+                        return Err(cesium_contract_sdk::data::StateError::NoReturnData);
                       }
 
                       let result = result.unwrap();
@@ -235,7 +235,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                       Ok(result[0] == 1)
                     }
-                    pub fn #set_indent(&mut self, value: bool) -> Result<(), cesium_contract_sdk::state::StateError> {
+                    pub fn #set_indent(&mut self, value: bool) -> Result<(), cesium_contract_sdk::data::StateError> {
                       let byte_value: u8 = if value { 1 } else { 0 };
                       let byte_slice: &[u8] = &[byte_value];
                       let result = State::set(#field_index, byte_slice);
@@ -261,7 +261,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
             {
                 to_bytes = quote! {
                     #to_bytes
-                    pub fn #get_indent(&mut self) -> Result<#field_type, cesium_contract_sdk::state::StateError> {
+                    pub fn #get_indent(&mut self) -> Result<#field_type, cesium_contract_sdk::data::StateError> {
                       if self.#field_name_cached {
                         return Ok(self.#field_ident);
                       }
@@ -273,7 +273,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                       let result = result.unwrap();
                       if result.is_none() {
-                        return Err(cesium_contract_sdk::state::StateError::NoReturnData);
+                        return Err(cesium_contract_sdk::data::StateError::NoReturnData);
                       }
 
                       let result = result.unwrap();
@@ -283,7 +283,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                       Ok(self.#field_ident)
                     }
-                    pub fn #set_indent(&mut self, value: #field_type) -> Result<(), cesium_contract_sdk::state::StateError> {
+                    pub fn #set_indent(&mut self, value: #field_type) -> Result<(), cesium_contract_sdk::data::StateError> {
                       let byte_value = value.to_le_bytes();
                       let result = State::set(#field_index, &byte_value);
                       if result.is_ok() {
@@ -319,7 +319,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                     }
                 }
                 pub fn define_all() {
-                    cesium_contract_sdk::state::State::define(#field_index + 1);
+                    cesium_contract_sdk::data::State::define(#field_index + 1);
                 }
                 #to_bytes
             }

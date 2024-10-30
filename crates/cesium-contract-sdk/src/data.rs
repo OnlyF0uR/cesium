@@ -25,6 +25,8 @@ extern "C" {
         data_ptr: *const u8,
         data_len: i32,
     );
+    fn h_commit_account_data();
+    fn h_commit_all();
 }
 
 #[derive(Debug)]
@@ -145,5 +147,17 @@ impl DataAccount {
         }
 
         Ok(())
+    }
+
+    pub fn commit() {
+        unsafe {
+            h_commit_account_data();
+        }
+    }
+}
+
+pub fn commit_all() {
+    unsafe {
+        h_commit_all();
     }
 }
