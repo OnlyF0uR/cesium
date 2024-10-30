@@ -4,35 +4,64 @@ use std::collections::HashMap;
 use wasmedge_sdk::{
     params, vm::SyncInst, AsInstance, ImportObjectBuilder, Module, Store, Vm, WasmValue,
 };
-use wasmedge_sys::WasiModule;
+use wasmedge_sys::{ImportModule, WasiModule};
 
 use crate::{
-    functions::{h_change_state, h_commit_state, h_get_state, h_write_state_mem},
+    functions::{
+        h_change_state, h_commit_state, h_define_state, h_get_state, h_initialize_data_account,
+        h_initialize_independent_data_account, h_update_data_account, h_write_address_mem,
+        h_write_state_mem,
+    },
     state::ContractState,
 };
 
-pub fn initialize_contract(
-    wasm_bytes: &[u8],
-    account_id: &str,
-) -> Result<Vec<WasmValue>, Box<dyn std::error::Error + Send + Sync>> {
-    let state = ContractState::new(account_id.to_owned());
-    let mut wasi_module = WasiModule::create(None, None, None).unwrap();
-
+fn create_import_builder(state: ContractState) -> ImportModule<ContractState> {
     let mut import_builder = ImportObjectBuilder::new("env", state).unwrap();
     import_builder
-        .with_func::<(i32, i32), i32>("h_get_state", h_get_state)
+        .with_func::<i32, ()>("h_define_state", h_define_state)
+        .unwrap();
+    import_builder
+        .with_func::<i32, i32>("h_get_state", h_get_state)
         .unwrap();
     import_builder
         .with_func::<i32, ()>("h_write_state_mem", h_write_state_mem)
         .unwrap();
     import_builder
-        .with_func::<(i32, i32, i32, i32), ()>("h_change_state", h_change_state)
+        .with_func::<(i32, i32, i32), ()>("h_change_state", h_change_state)
         .unwrap();
     import_builder
         .with_func::<(), ()>("h_commit_state", h_commit_state)
         .unwrap();
+    import_builder
+        .with_func::<(i32, i32, i32, i32), i32>(
+            "h_initialize_data_account",
+            h_initialize_data_account,
+        )
+        .unwrap();
+    import_builder
+        .with_func::<(i32, i32, i32, i32, i32, i32), i32>(
+            "h_initialize_independent_data_account",
+            h_initialize_independent_data_account,
+        )
+        .unwrap();
+    import_builder
+        .with_func::<i32, ()>("h_write_address_mem", h_write_address_mem)
+        .unwrap();
+    import_builder
+        .with_func::<(i32, i32, i32, i32), ()>("h_update_data_account", h_update_data_account)
+        .unwrap();
     // TODO: Provide more functions that can be used in initialize, like define_state etc.
-    let mut import_object = import_builder.build();
+    import_builder.build()
+}
+
+pub fn initialize_contract(
+    wasm_bytes: &[u8],
+    account_id: &str,
+    caller_id: &str,
+) -> Result<Vec<WasmValue>, Box<dyn std::error::Error + Send + Sync>> {
+    let state = ContractState::new(account_id, caller_id);
+    let mut wasi_module = WasiModule::create(None, None, None).unwrap();
+    let mut import_object: ImportModule<ContractState> = create_import_builder(state);
 
     let mut instances: HashMap<String, &mut dyn SyncInst> = HashMap::new();
     instances.insert(wasi_module.name().to_string(), wasi_module.as_mut());
@@ -59,21 +88,7 @@ pub fn execute_contract_function(
     }
 
     let mut wasi_module = WasiModule::create(None, None, None).unwrap();
-
-    let mut import_builder = ImportObjectBuilder::new("env", state).unwrap();
-    import_builder
-        .with_func::<(i32, i32), i32>("h_get_state", h_get_state)
-        .unwrap();
-    import_builder
-        .with_func::<i32, ()>("h_write_state_mem", h_write_state_mem)
-        .unwrap();
-    import_builder
-        .with_func::<(i32, i32, i32, i32), ()>("h_change_state", h_change_state)
-        .unwrap();
-    import_builder
-        .with_func::<(), ()>("h_commit_state", h_commit_state)
-        .unwrap();
-    let mut import_object = import_builder.build();
+    let mut import_object: ImportModule<ContractState> = create_import_builder(state);
 
     let mut instances: HashMap<String, &mut dyn SyncInst> = HashMap::new();
     instances.insert(wasi_module.name().to_string(), wasi_module.as_mut());
@@ -153,7 +168,8 @@ mod tests {
         let mut file = File::open("../../target/wasm32-wasi/release/state_aot.wasm").unwrap();
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
-        let result = initialize_contract(&wasm_bytes, "").unwrap();
+        let result =
+            initialize_contract(&wasm_bytes, "111examplecontract", "111exampleuser").unwrap();
         assert_eq!(result.len(), 1);
 
         let v = result.get(0).unwrap();
@@ -170,16 +186,16 @@ mod tests {
         file.read_to_end(&mut wasm_bytes).unwrap();
 
         // First initialize the contract
-        let result = initialize_contract(&wasm_bytes, "").unwrap();
+        let result =
+            initialize_contract(&wasm_bytes, "111examplecontract", "111exampleuser").unwrap();
         assert_eq!(result.len(), 1);
 
         let v = result.get(0).unwrap();
         assert_eq!(v.to_i32(), 0);
 
         // Specify the current state prior to running the function
-        let mut data: HashMap<String, Vec<u8>> = HashMap::new();
-        data.insert("example_str".to_string(), "my_value".as_bytes().to_vec());
-        let state = ContractState::new_with_storage("", data);
+        let data = vec!["my_value".as_bytes().to_vec()]; // "my_value" on index 0
+        let state = ContractState::new_with_storage("111examplecontract", "111exampleuser", data);
 
         // Define the parameters that will be passed in the function
         // Execute the function

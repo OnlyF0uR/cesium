@@ -110,7 +110,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                         Ident::new(&format!("{}_cached", field_name), Span::call_site());
                     fields.named.push(
                         syn::Field::parse_named
-                            .parse2(quote! { pub #new_field_name: bool })
+                            .parse2(quote! { #new_field_name: bool })
                             .unwrap(),
                     );
 
@@ -128,9 +128,9 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
         // A function per field to convert value to bytes
         let mut to_bytes = quote! {};
         // Field of the define_all function
-        let mut define_block = quote! {};
 
         // Use the fields without cached fields
+        let mut field_index = 0;
         for field in fields {
             let field_ident = field.ident.unwrap();
             let field_name = field_ident.to_string();
@@ -138,19 +138,11 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                 Ident::new(&format!("{}_cached", field_name), Span::call_site());
             let field_type = field.ty.clone();
 
-            define_block = quote! {
-                #define_block
-                // TODO: This
-                // println!("{:?}", #field_name);
-            };
-
             let get_indent = Ident::new(&format!("get_{}", field_name), Span::call_site());
             let set_indent = Ident::new(&format!("set_{}", field_name), Span::call_site());
 
             // println!("{}", field_type.to_token_stream().to_string());
 
-            // get the type first
-            // If it is a string then create quote for to_bytes
             if field_type.to_token_stream().to_string() == "String" {
                 to_bytes = quote! {
                     #to_bytes
@@ -159,7 +151,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                         return Ok(self.#field_ident.clone());
                       }
 
-                      let result = State::get(#field_name);
+                      let result = State::get(#field_index);
                       if let Err(e) = result {
                         return Err(e);
                       }
@@ -176,7 +168,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                       Ok(result_str)
                     }
                     pub fn #set_indent(&mut self, value: &str) -> Result<(), cesium_contract_sdk::state::StateError> {
-                      let result = State::set(#field_name, value.as_bytes());
+                      let result = State::set(#field_index, value.as_bytes());
                       if result.is_ok() {
                         self.#field_ident = value.to_owned();
                         self.#field_name_cached = true;
@@ -192,7 +184,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                         return Ok(self.#field_ident.clone());
                       }
 
-                      let result = State::get(#field_name);
+                      let result = State::get(#field_index);
                       if let Err(e) = result {
                         return Err(e);
                       }
@@ -210,7 +202,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                       Ok(result)
                     }
                     pub fn #set_indent(&mut self, value: Vec<u8>) -> Result<(), cesium_contract_sdk::state::StateError> {
-                      let result = State::set(#field_name, &value);
+                      let result = State::set(#field_index, &value);
                       if result.is_ok() {
                         self.#field_ident = value;
                         self.#field_name_cached = true;
@@ -226,7 +218,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                         return Ok(self.#field_ident);
                       }
 
-                      let result = State::get(#field_name);
+                      let result = State::get(#field_index);
                       if let Err(e) = result {
                         return Err(e);
                       }
@@ -246,7 +238,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                     pub fn #set_indent(&mut self, value: bool) -> Result<(), cesium_contract_sdk::state::StateError> {
                       let byte_value: u8 = if value { 1 } else { 0 };
                       let byte_slice: &[u8] = &[byte_value];
-                      let result = State::set(#field_name, byte_slice);
+                      let result = State::set(#field_index, byte_slice);
                       if result.is_ok() {
                         self.#field_ident = value;
                         self.#field_name_cached = true;
@@ -274,7 +266,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                         return Ok(self.#field_ident);
                       }
 
-                      let result = State::get(#field_name);
+                      let result = State::get(#field_index);
                       if let Err(e) = result {
                         return Err(e);
                       }
@@ -293,7 +285,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                     }
                     pub fn #set_indent(&mut self, value: #field_type) -> Result<(), cesium_contract_sdk::state::StateError> {
                       let byte_value = value.to_le_bytes();
-                      let result = State::set(#field_name, &byte_value);
+                      let result = State::set(#field_index, &byte_value);
                       if result.is_ok() {
                         self.#field_ident = value;
                         self.#field_name_cached = true;
@@ -301,7 +293,16 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                       result
                     }
                 };
+            } else {
+                return TokenStream::from(
+                    syn::Error::new(
+                        Span::call_site().into(),
+                        "cesium macro can only be used on struct with fields of type String, Vec<u8>, bool, u256, u128, u64, u32, u16, u8, i256, i128, i64, i32, i16, i8.",
+                    )
+                    .to_compile_error(),
+                );
             }
+            field_index = field_index + 1;
         }
 
         // Create the entire struct impl
@@ -318,7 +319,7 @@ pub fn cesium(attr: TokenStream, item: TokenStream) -> TokenStream {
                     }
                 }
                 pub fn define_all() {
-                    #define_block
+                    cesium_contract_sdk::state::State::define(#field_index + 1);
                 }
                 #to_bytes
             }

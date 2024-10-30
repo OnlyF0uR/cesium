@@ -88,9 +88,10 @@ pub async fn commit_state(
 
 pub async fn load_state(
     contract_id: &str,
+    caller_id: &str,
 ) -> Result<ContractState, Box<dyn std::error::Error + Send + Sync>> {
     // TODO: Load state from disk
-    let state = ContractState::new(contract_id.to_owned());
+    let state = ContractState::new(contract_id, caller_id);
 
     let instance = get_instance().await;
 
