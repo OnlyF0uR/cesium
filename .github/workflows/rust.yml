@@ -32,7 +32,7 @@ jobs:
         components: rustfmt, clippy
 
     - name: Add WASM target
-      run: rustup target add wasm32-wasi
+      run: rustup target add wasm32-unknown-unknown
 
     - name: Cache dependencies
       uses: actions/cache@v3
