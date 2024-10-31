@@ -10,7 +10,7 @@ use crate::{
     env::ContractEnv,
     functions::{
         h_change_state, h_commit_account_data, h_commit_all, h_commit_state, h_define_state,
-        h_get_state, h_initialize_data_account, h_initialize_independent_data_account,
+        h_gen_id, h_get_state, h_initialize_data_account, h_initialize_independent_data_account,
         h_update_data_account,
     },
 };
@@ -49,6 +49,9 @@ fn create_import_builder(state: ContractEnv) -> ImportModule<ContractEnv> {
         .unwrap();
     import_builder
         .with_func::<(), ()>("h_commit_all", h_commit_all)
+        .unwrap();
+    import_builder
+        .with_func::<(), i64>("h_gen_id", h_gen_id)
         .unwrap();
     // TODO: Provide more functions that can be used in initialize, like define_state etc.
     import_builder.build()

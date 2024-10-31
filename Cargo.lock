@@ -223,6 +223,7 @@ dependencies = [
  "pqcrypto-traits",
  "rand",
  "serde",
+ "sha3",
 ]
 
 [[package]]
@@ -240,6 +241,7 @@ version = "0.2.0"
 name = "cesium-runtime"
 version = "0.2.0"
 dependencies = [
+ "cesium-material",
  "wasmedge-sdk",
  "wasmedge-sys",
 ]
@@ -257,12 +259,9 @@ name = "cesium-storage"
 version = "0.2.0"
 dependencies = [
  "bincode",
- "bs58",
  "cesium-material",
- "rand",
  "rocksdb",
  "serde",
- "sha3",
  "tempfile",
 ]
 
@@ -900,6 +899,10 @@ dependencies = [
  "memchr",
  "minimal-lexical",
 ]
+
+[[package]]
+name = "nomisma"
+version = "0.1.0"
 
 [[package]]
 name = "num-derive"

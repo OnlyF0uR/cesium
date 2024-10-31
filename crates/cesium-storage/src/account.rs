@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use cesium_material::keys::PUB_BYTE_LEN;
-use rand::RngCore;
+use cesium_material::id::{generate_id, to_readable_id};
 use rocksdb::{Options, WriteBatch, DB};
 use serde::{Deserialize, Serialize};
-use sha3::Digest;
 
 use crate::data::DataObject;
 
@@ -43,23 +41,9 @@ impl DataAccountManager {
         user_address: &str,
         obj: &[DataObject],
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        // Generate ID using thread-local RNG for better performance
-        let mut rng = rand::thread_rng();
-        let mut id = [0u8; 32];
-        rng.fill_bytes(&mut id);
+        let result = generate_id();
+        let id = to_readable_id(&result);
 
-        let mut hasher = sha3::Sha3_384::new();
-        hasher.update(id);
-        let result = hasher.finalize().to_vec();
-
-        // We want to ensure that our hash is the size of
-        // a public key, so we can use it as an ID, now a
-        // sha3_384 hash is 48 bytes, so that works.
-        if result.len() != PUB_BYTE_LEN {
-            panic!("Invalid public key length");
-        }
-
-        let id = bs58::encode(result).into_string();
         let account_key = format!("account:{}", user_address);
 
         // Use a write batch for atomic operations

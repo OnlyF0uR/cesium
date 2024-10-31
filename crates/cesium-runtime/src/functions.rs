@@ -1,3 +1,4 @@
+use cesium_material::id::generate_id;
 use wasmedge_sdk::{error::CoreError, CallingFrame, Instance, WasmValue};
 use wasmedge_sys::AsInstance;
 
@@ -310,4 +311,27 @@ pub fn h_commit_all(
     env.account_data.committed = true;
 
     Ok(wasm_encoder::empty_value())
+}
+
+pub fn h_gen_id(
+    env: &mut ContractEnv,
+    inst: &mut Instance,
+    _caller: &mut CallingFrame,
+    _input: Vec<WasmValue>,
+) -> Result<Vec<WasmValue>, CoreError> {
+    let token_id = generate_id();
+    let token_id_len = token_id.len() as i32;
+
+    let mut mem = inst.get_memory_mut("memory").unwrap();
+    let result = mem.set_data(token_id, env.mem_offset);
+    if let Err(e) = result {
+        println!("Error setting data in memory: {:?}", e);
+        return Err(CoreError::Execution(
+            wasmedge_sdk::error::CoreExecutionError::FuncSigMismatch,
+        ));
+    }
+    let ptr = env.mem_offset;
+    env.mem_offset += token_id_len as u32;
+
+    Ok(wasm_encoder::value_from_ptr(ptr, token_id_len))
 }
