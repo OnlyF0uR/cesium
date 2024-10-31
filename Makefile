@@ -9,9 +9,9 @@ build:
 
 # Build the WASM packages
 wasm:
-	cargo build --target wasm32-wasi --release --package cesium-contract-sdk
-	cargo build --target wasm32-wasi --release --package state
-	cargo build --target wasm32-wasi --release --package state-sdk
+	cargo build --target wasm32-unknown-unknown --release --package cesium-contract-sdk
+	cargo build --target wasm32-unknown-unknown --release --package state
+	cargo build --target wasm32-unknown-unknown --release --package state-sdk
 
 test: 
 	cargo test --exclude cesium-contract-sdk --exclude state --exclude state-sdk --workspace --verbose

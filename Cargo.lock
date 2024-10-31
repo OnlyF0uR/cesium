@@ -191,18 +191,18 @@ dependencies = [
 
 [[package]]
 name = "cesium-cli"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "cesium-contract-sdk"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cesium-contract-sdk-macros",
 ]
 
 [[package]]
 name = "cesium-contract-sdk-macros"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -211,11 +211,11 @@ dependencies = [
 
 [[package]]
 name = "cesium-econ"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "cesium-material"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bs58",
  "hex",
@@ -227,28 +227,26 @@ dependencies = [
 
 [[package]]
 name = "cesium-mempool"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cesium-material",
 ]
 
 [[package]]
 name = "cesium-node"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "cesium-runtime"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
- "tokio",
- "wasmedge-macro",
  "wasmedge-sdk",
  "wasmedge-sys",
 ]
 
 [[package]]
 name = "cesium-state"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cesium-material",
  "tokio",
@@ -256,7 +254,7 @@ dependencies = [
 
 [[package]]
 name = "cesium-storage"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bincode",
  "bs58",

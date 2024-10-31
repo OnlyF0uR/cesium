@@ -7,7 +7,7 @@ pub type AccountId = Vec<u8>;
 pub struct ContractState {
     pub initialized: bool,
     pub data: Vec<Vec<u8>>,
-    pub cached_value: Vec<u8>,
+    pub committed: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -20,7 +20,7 @@ pub struct AccountDataItem {
 #[derive(Clone, Debug)]
 pub struct AccountData {
     pub data: HashMap<Vec<u8>, AccountDataItem>, // address-data pairs
-    pub cached_value: Vec<u8>,
+    pub committed: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -30,6 +30,8 @@ pub struct ContractEnv {
 
     pub state: ContractState,
     pub account_data: AccountData,
+
+    pub mem_offset: u32,
 }
 
 impl ContractEnv {
@@ -38,17 +40,18 @@ impl ContractEnv {
         let state = ContractState {
             initialized: false,
             data: Vec::new(),
-            cached_value: Vec::new(),
+            committed: false,
         };
         let account_data = AccountData {
             data: HashMap::new(),
-            cached_value: Vec::new(),
+            committed: false,
         };
         Self {
             contract_id: contract_id.as_bytes().to_vec(),
             caller_id: caller_id.as_bytes().to_vec(),
             state,
             account_data,
+            mem_offset: 0,
         }
     }
 
@@ -56,17 +59,18 @@ impl ContractEnv {
         let state = ContractState {
             initialized: true,
             data: state_data,
-            cached_value: Vec::new(),
+            committed: false,
         };
         let account_data = AccountData {
             data: HashMap::new(),
-            cached_value: Vec::new(),
+            committed: false,
         };
         Self {
             contract_id: contract_id.as_bytes().to_vec(),
             caller_id: caller_id.as_bytes().to_vec(),
             state,
             account_data,
+            mem_offset: 0,
         }
     }
 }
