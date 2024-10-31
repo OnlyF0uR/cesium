@@ -51,6 +51,7 @@ bincode = "1.3.3"
 tempfile = "3.13.0"
 wasmedge-sdk = "0.14.0"
 wasmedge-sys = "0.19.2"
+wasmparser = "0.219.1"
 serde = { version = "1.0.213", features = ["derive"] }
 # Inner libs
 cesium-storage = { path = "crates/cesium-storage" }

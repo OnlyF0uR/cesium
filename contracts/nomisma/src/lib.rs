@@ -21,6 +21,7 @@ pub unsafe extern "C" fn create() -> i32 {
     let (data_ptr, data_len) = utils::unfold_ptr(token_id_result);
 
     let token_id = std::slice::from_raw_parts(data_ptr, data_len);
+    // sum the token id to a i32
 
     // TODO: We shall first create a data account for the token mint,
     // the update authority shall be this contract, but the owner minting authority will
@@ -29,7 +30,7 @@ pub unsafe extern "C" fn create() -> i32 {
 
     // TODO: Create data account for the initial set of tokens
 
-    0
+    1
 }
 
 #[no_mangle]
@@ -39,14 +40,14 @@ pub unsafe extern "C" fn mint_to() -> i32 {
     // and if so mints the tokens to the recipient
     // also not that on the host, there will be checked if the token already has a token
     // data account for the specific token, and if not it will be automatically created
-    0
+    2
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn disable_mint() -> i32 {
     // TODO: Check if the caller actually has the minting authority, if so and we shall
     // set it to None, so that no more tokens can ever be minted
-    0
+    3
 }
 
 #[no_mangle]
@@ -56,7 +57,7 @@ pub unsafe extern "C" fn transfer() -> i32 {
     // and if so send the tokens/coins on their way to the recipient
     // also not that on the host, there will be checked if the token already has a token
     // data account for the specific token, and if not it will be automatically created
-    0
+    4
 }
 
 #[no_mangle]
@@ -67,18 +68,18 @@ pub unsafe extern "C" fn transfer_with_moderator() -> i32 {
     // and also send a fee to the specified moderator/facilitator
     // also not that on the host, there will be checked if the token already has a token
     // data account for the specific token, and if not it will be automatically created
-    0
+    5
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn burn() -> i32 {
     // TODO: Similar to transfer, checks if the token data accounts specified belongs
     // to the caller, and if so sends the tokens into the void
-    0
+    6
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn balance_of() -> i32 {
     // TODO: Returns the balance of a token data account
-    0
+    7
 }

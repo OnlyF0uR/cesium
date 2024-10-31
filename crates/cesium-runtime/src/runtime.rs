@@ -10,9 +10,12 @@ use crate::{
     data::MAX_MEMORY_OFFSET,
     env::ContractEnv,
     functions::{
-        h_change_state, h_commit_account_data, h_commit_all, h_commit_state, h_define_state,
-        h_gen_id, h_get_state, h_initialize_data_account, h_initialize_independent_data_account,
-        h_update_data_account,
+        accounts::{
+            h_commit_account_data, h_initialize_data_account,
+            h_initialize_independent_data_account, h_update_data_account,
+        },
+        misc::{h_commit_all, h_gen_id},
+        state::{h_change_state, h_commit_state, h_define_state, h_get_state},
     },
 };
 
@@ -136,6 +139,8 @@ pub fn execute_contract_function(
 // write a test that reads the bytes from target/wasm32-wasi/debug/example.wasm and executes execute_contract
 #[cfg(test)]
 mod tests {
+    use crate::bytecode::aot::compile_to_aot;
+
     use super::*;
     use std::fs::File;
     use std::io::Read;
@@ -153,29 +158,19 @@ mod tests {
             ])
             .status()
             .expect("Failed to compile contract");
-    }
 
-    fn compile_to_aot(package: &str) {
-        Command::new("wasmedge")
-            .args([
-                "compile",
-                &format!(
-                    "../../target/wasm32-unknown-unknown/release/{}.wasm",
-                    package
-                ),
-                &format!(
-                    "../../target/wasm32-unknown-unknown/release/{}_aot.wasm",
-                    package
-                ),
-            ])
-            .status()
-            .expect("Failed to compile contract to AOT");
+        let package = package.replace("-", "_");
+        if let Err(e) = compile_to_aot(&format!(
+            "../../target/wasm32-unknown-unknown/release/{}.wasm",
+            package
+        )) {
+            panic!("Failed to compile to AOT: {:?}", e);
+        }
     }
 
     #[test]
     fn test_initialize_state_contract() {
         compile("state");
-        compile_to_aot("state");
 
         let mut file =
             File::open("../../target/wasm32-unknown-unknown/release/state_aot.wasm").unwrap();
@@ -192,7 +187,6 @@ mod tests {
     #[test]
     fn test_initialize_state_sdk_contract() {
         compile("state-sdk");
-        compile_to_aot("state_sdk");
 
         let mut file =
             File::open("../../target/wasm32-unknown-unknown/release/state_sdk_aot.wasm").unwrap();
