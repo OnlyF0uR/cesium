@@ -2,6 +2,7 @@ use wasmedge_sdk::{error::CoreError, CallingFrame, Instance, WasmValue};
 use wasmedge_sys::AsInstance;
 
 use crate::{
+    convert::wasm_encoder,
     data::{save_account_data, save_state},
     env::ContractEnv,
 };
@@ -30,7 +31,7 @@ pub fn h_define_state(
     let storage_len = input[0].to_i32() as usize;
     env.state.data = vec![Vec::new(); storage_len];
 
-    Ok(vec![])
+    Ok(wasm_encoder::empty_value())
 }
 
 // Host function to get a value from storage by key
@@ -69,8 +70,7 @@ pub fn h_get_state(
     let ptr = env.mem_offset;
     env.mem_offset += item_len as u32;
 
-    let combined = ((item_len as i64) << 32) | (ptr as i64);
-    Ok(vec![WasmValue::from_i64(combined)])
+    Ok(wasm_encoder::value_from_ptr(ptr, item_len))
 }
 
 pub fn h_change_state(
@@ -103,7 +103,7 @@ pub fn h_change_state(
     let value = mem.get_data(value_ptr, value_len).unwrap();
     env.state.data[item_index] = value; // Update the value in storage
 
-    Ok(vec![]) // Return the length as a WasmValue
+    Ok(wasm_encoder::empty_value()) // Return the length as a WasmValue
 }
 
 pub fn h_commit_state(
@@ -127,7 +127,7 @@ pub fn h_commit_state(
 
     env.state.committed = true;
 
-    Ok(vec![]) // Return an empty result
+    Ok(wasm_encoder::empty_value()) // Return an empty result
 }
 
 pub fn h_initialize_data_account(
@@ -168,7 +168,7 @@ pub fn h_initialize_data_account(
 
     // Will return the address the len of the address of
     // a new account, so wasm can call h_write_address_mem
-    Ok(vec![WasmValue::from_i64(0)])
+    Ok(wasm_encoder::value_from_ptr(0, 0))
 }
 
 pub fn h_initialize_independent_data_account(
@@ -213,7 +213,7 @@ pub fn h_initialize_independent_data_account(
 
     // Will return the address the len of the address of
     // a new account, so wasm can call h_write_address_mem
-    Ok(vec![WasmValue::from_i64(0)])
+    Ok(wasm_encoder::value_from_ptr(0, 0))
 }
 
 pub fn h_update_data_account(
@@ -252,7 +252,7 @@ pub fn h_update_data_account(
 
     // TODO: Set the account state if it exists
 
-    Ok(vec![])
+    Ok(wasm_encoder::empty_value())
 }
 
 pub fn h_commit_account_data(
@@ -309,5 +309,5 @@ pub fn h_commit_all(
 
     env.account_data.committed = true;
 
-    Ok(vec![]) // Return an empty result
+    Ok(wasm_encoder::empty_value())
 }
