@@ -1,10 +1,6 @@
 use wasmparser::{ExternalKind, FuncType, Operator, Parser, Payload, RecGroup, TypeRef};
 
-use super::errors::AnalyzerError;
-
-pub struct Analyzer {
-    pub comp_units: u64,
-}
+use super::{compunits::calculate_computational_costs, errors::AnalyzerError, loop_analyzer};
 
 // const array of allowed imports
 const ALLOWED_IMPORTS: [&str; 10] = [
@@ -43,11 +39,20 @@ pub struct ExportFunction {
 #[derive(Debug)]
 pub struct CodeSection<'a> {
     pub operators: Vec<Operator<'a>>,
+    pub comp_costs: u64,
+}
+
+pub struct Analyzer {
+    compunit_limit_per_func: u64,
+    instr_limit_per_func: u32,
 }
 
 impl Analyzer {
-    pub fn new() -> Self {
-        Self { comp_units: 0 }
+    pub fn new(compunit_limit_per_func: u64, instr_limit_per_func: u32) -> Self {
+        Self {
+            compunit_limit_per_func,
+            instr_limit_per_func,
+        }
     }
 
     pub fn analyze<'a>(&mut self, bytecode: &'a [u8]) -> Result<Vec<Function<'a>>, AnalyzerError> {
@@ -56,6 +61,8 @@ impl Analyzer {
         let mut function_type_indeces: Vec<u32> = Vec::new();
         let mut export_functions: Vec<ExportFunction> = Vec::new();
         let mut code_sections: Vec<CodeSection> = Vec::new();
+
+        let mut la = loop_analyzer::LoopAnalyzer::new(1000, 5);
 
         for payload in Parser::new(0).parse_all(bytecode) {
             match payload.map_err(|e| AnalyzerError::ParserError(e.to_string()))? {
@@ -98,7 +105,26 @@ impl Analyzer {
                         operators.push(item);
                     }
 
-                    code_sections.push(CodeSection { operators });
+                    // Analyze for infinite loops
+                    la.analyze_operators(&operators)?;
+
+                    // IDEA: Propagate unit costs to the level of the calculate_computational_costs function
+                    let (instr_count, comp_costs) = calculate_computational_costs(&operators);
+                    if instr_count > self.instr_limit_per_func {
+                        return Err(AnalyzerError::ExceededInstructionLimit(
+                            self.instr_limit_per_func,
+                        ));
+                    }
+                    if comp_costs > self.compunit_limit_per_func {
+                        return Err(AnalyzerError::ExceededCompUnitLimit(
+                            self.compunit_limit_per_func,
+                        ));
+                    }
+
+                    code_sections.push(CodeSection {
+                        operators,
+                        comp_costs,
+                    });
                 }
                 Payload::FunctionSection(function) => {
                     for f in function {
@@ -221,7 +247,7 @@ mod tests {
         let mut wasm_bytes = Vec::new();
         file.read_to_end(&mut wasm_bytes).unwrap();
 
-        let mut analyzer = Analyzer::new();
+        let mut analyzer = Analyzer::new(2400, 1800);
 
         let result = analyzer.analyze(&wasm_bytes);
         assert!(result.is_ok());

@@ -20,8 +20,10 @@ pub unsafe extern "C" fn create() -> i32 {
     let token_id_result = h_gen_id();
     let (data_ptr, data_len) = utils::unfold_ptr(token_id_result);
 
-    let token_id = std::slice::from_raw_parts(data_ptr, data_len);
+    let _token_id = std::slice::from_raw_parts(data_ptr, data_len);
     // sum the token id to a i32
+
+    // create infinite loop
 
     // TODO: We shall first create a data account for the token mint,
     // the update authority shall be this contract, but the owner minting authority will
