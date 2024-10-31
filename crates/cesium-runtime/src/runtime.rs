@@ -7,6 +7,7 @@ use wasmedge_sdk::{
 use wasmedge_sys::ImportModule;
 
 use crate::{
+    data::MAX_MEMORY_OFFSET,
     env::ContractEnv,
     functions::{
         h_change_state, h_commit_account_data, h_commit_all, h_commit_state, h_define_state,
@@ -113,6 +114,10 @@ pub fn execute_contract_function(
 
     let mut offset = 0;
     for param in &params {
+        if offset + param.len() as u32 > MAX_MEMORY_OFFSET {
+            return Err("Memory overflow".into());
+        }
+
         mem.set_data(param, offset).unwrap();
 
         wasm_params.push(WasmValue::from_i32(offset as i32));

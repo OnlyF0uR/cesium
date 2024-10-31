@@ -4,7 +4,7 @@ use wasmedge_sys::AsInstance;
 
 use crate::{
     convert::wasm_encoder,
-    data::{save_account_data, save_state},
+    data::{save_account_data, save_state, MAX_MEMORY_OFFSET},
     env::ContractEnv,
 };
 
@@ -53,12 +53,18 @@ pub fn h_get_state(
     let item_index = input[0].to_i32() as usize;
     if item_index >= env.state.data.len() {
         return Err(CoreError::Execution(
-            wasmedge_sdk::error::CoreExecutionError::FuncSigMismatch,
+            wasmedge_sdk::error::CoreExecutionError::ArrayOutOfBounds,
         ));
     }
 
     let item_data = env.state.data[item_index].clone();
     let item_len = item_data.len() as i32;
+
+    if env.mem_offset + item_len as u32 > MAX_MEMORY_OFFSET {
+        return Err(CoreError::Execution(
+            wasmedge_sdk::error::CoreExecutionError::MemoryOutOfBounds,
+        ));
+    }
 
     let mut mem = inst.get_memory_mut("memory").unwrap();
     let result = mem.set_data(item_data, env.mem_offset);
@@ -321,6 +327,12 @@ pub fn h_gen_id(
 ) -> Result<Vec<WasmValue>, CoreError> {
     let token_id = generate_id();
     let token_id_len = token_id.len() as i32;
+
+    if env.mem_offset + token_id_len as u32 > MAX_MEMORY_OFFSET {
+        return Err(CoreError::Execution(
+            wasmedge_sdk::error::CoreExecutionError::MemoryOutOfBounds,
+        ));
+    }
 
     let mut mem = inst.get_memory_mut("memory").unwrap();
     let result = mem.set_data(token_id, env.mem_offset);

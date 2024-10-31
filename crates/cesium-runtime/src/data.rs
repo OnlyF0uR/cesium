@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use crate::env::AccountDataItem;
 
+pub const MAX_MEMORY_OFFSET: u32 = 1 * 64 * 1024; // 65,536 bytes (1 page)
+
 pub fn load_state(
     _contract: &[u8],
 ) -> Result<Vec<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
