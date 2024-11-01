@@ -23,8 +23,6 @@ pub unsafe extern "C" fn create() -> i32 {
     let _token_id = std::slice::from_raw_parts(data_ptr, data_len);
     // sum the token id to a i32
 
-    // create infinite loop
-
     // TODO: We shall first create a data account for the token mint,
     // the update authority shall be this contract, but the owner minting authority will
     // be set to the caller of this function. The token id will also be used to

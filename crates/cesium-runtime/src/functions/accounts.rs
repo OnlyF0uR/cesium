@@ -1,7 +1,7 @@
 use wasmedge_sdk::{error::CoreError, CallingFrame, Instance, WasmValue};
 use wasmedge_sys::AsInstance;
 
-use crate::{convert::wasm_encoder, data::save_account_data, env::ContractEnv};
+use crate::{data::save_account_data, env::ContractEnv, wasm::wasm_values};
 
 pub fn h_initialize_data_account(
     env: &mut ContractEnv,
@@ -41,7 +41,7 @@ pub fn h_initialize_data_account(
 
     // Will return the address the len of the address of
     // a new account, so wasm can call h_write_address_mem
-    Ok(wasm_encoder::value_from_ptr(0, 0))
+    Ok(wasm_values::from_ptr(0, 0))
 }
 
 pub fn h_initialize_independent_data_account(
@@ -86,7 +86,7 @@ pub fn h_initialize_independent_data_account(
 
     // Will return the address the len of the address of
     // a new account, so wasm can call h_write_address_mem
-    Ok(wasm_encoder::value_from_ptr(0, 0))
+    Ok(wasm_values::from_ptr(0, 0))
 }
 
 pub fn h_update_data_account(
@@ -125,7 +125,7 @@ pub fn h_update_data_account(
 
     // TODO: Set the account state if it exists
 
-    Ok(wasm_encoder::empty_value())
+    Ok(wasm_values::empty())
 }
 
 pub fn h_commit_account_data(
@@ -149,5 +149,5 @@ pub fn h_commit_account_data(
 
     env.account_data.committed = true;
 
-    Ok(vec![]) // Return an empty result
+    Ok(wasm_values::empty()) // Return an empty result
 }

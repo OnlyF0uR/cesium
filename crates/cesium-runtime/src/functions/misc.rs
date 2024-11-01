@@ -3,9 +3,9 @@ use wasmedge_sdk::{error::CoreError, CallingFrame, Instance, WasmValue};
 use wasmedge_sys::AsInstance;
 
 use crate::{
-    convert::wasm_encoder,
     data::{save_account_data, save_state, MAX_MEMORY_OFFSET},
     env::ContractEnv,
+    wasm::wasm_values,
 };
 
 pub fn h_commit_all(
@@ -38,7 +38,7 @@ pub fn h_commit_all(
 
     env.account_data.committed = true;
 
-    Ok(wasm_encoder::empty_value())
+    Ok(wasm_values::empty())
 }
 
 pub fn h_gen_id(
@@ -67,5 +67,5 @@ pub fn h_gen_id(
     let ptr = env.mem_offset;
     env.mem_offset += token_id_len as u32;
 
-    Ok(wasm_encoder::value_from_ptr(ptr, token_id_len))
+    Ok(wasm_values::from_ptr(ptr, token_id_len))
 }

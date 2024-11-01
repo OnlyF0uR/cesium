@@ -2,9 +2,9 @@ use wasmedge_sdk::{error::CoreError, CallingFrame, Instance, WasmValue};
 use wasmedge_sys::AsInstance;
 
 use crate::{
-    convert::wasm_encoder,
-    data::{save_state, MAX_MEMORY_OFFSET},
+    data::save_state,
     env::ContractEnv,
+    wasm::{wasm_memory, wasm_values},
 };
 
 pub fn h_define_state(
@@ -31,7 +31,7 @@ pub fn h_define_state(
     let storage_len = input[0].to_i32() as usize;
     env.state.data = vec![Vec::new(); storage_len];
 
-    Ok(wasm_encoder::empty_value())
+    Ok(wasm_values::empty())
 }
 
 // Host function to get a value from storage by key
@@ -57,26 +57,9 @@ pub fn h_get_state(
     }
 
     let item_data = env.state.data[item_index].clone();
-    let item_len = item_data.len() as i32;
 
-    if env.mem_offset + item_len as u32 > MAX_MEMORY_OFFSET {
-        return Err(CoreError::Execution(
-            wasmedge_sdk::error::CoreExecutionError::MemoryOutOfBounds,
-        ));
-    }
-
-    let mut mem = inst.get_memory_mut("memory").unwrap();
-    let result = mem.set_data(item_data, env.mem_offset);
-    if let Err(e) = result {
-        println!("Error setting data in memory: {:?}", e);
-        return Err(CoreError::Execution(
-            wasmedge_sdk::error::CoreExecutionError::FuncSigMismatch,
-        ));
-    }
-    let ptr = env.mem_offset;
-    env.mem_offset += item_len as u32;
-
-    Ok(wasm_encoder::value_from_ptr(ptr, item_len))
+    let (ptr, len) = wasm_memory::allocate(inst, env, &item_data)?;
+    Ok(wasm_values::from_ptr(ptr, len))
 }
 
 pub fn h_change_state(
@@ -109,7 +92,7 @@ pub fn h_change_state(
     let value = mem.get_data(value_ptr, value_len).unwrap();
     env.state.data[item_index] = value; // Update the value in storage
 
-    Ok(wasm_encoder::empty_value()) // Return the length as a WasmValue
+    Ok(wasm_values::empty()) // Return the length as a WasmValue
 }
 
 pub fn h_commit_state(
@@ -133,5 +116,5 @@ pub fn h_commit_state(
 
     env.state.committed = true;
 
-    Ok(wasm_encoder::empty_value()) // Return an empty result
+    Ok(wasm_values::empty()) // Return an empty result
 }
