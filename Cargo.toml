@@ -10,6 +10,7 @@ members = [
   "crates/cesium-runtime",
   "crates/cesium-contract-sdk",
   "crates/cesium-contract-sdk-macros",
+  "crates/selenide",
 
   # Contracts
   "contracts/state",
@@ -52,7 +53,10 @@ tempfile = "3.13.0"
 wasmedge-sdk = "0.14.0"
 wasmedge-sys = "0.19.2"
 wasmparser = "0.219.1"
+once_cell = "1.20.2"
 serde = { version = "1.0.213", features = ["derive"] }
+wasmer = { version = "5.0.0", features = ["cranelift"] }
+wasmer-middlewares = "5.0.0"
 # Inner libs
 cesium-storage = { path = "crates/cesium-storage" }
 cesium-material = { path = "crates/cesium-material" }
@@ -62,3 +66,4 @@ cesium-econ = { path = "crates/cesium-econ" }
 cesium-runtime = { path = "crates/cesium-runtime" }
 cesium-contract-sdk = { path = "crates/cesium-contract-sdk" }
 cesium-contract-sdk-macros = { path = "crates/cesium-contract-sdk-macros" }
+selenide = { path = "crates/selenide" }

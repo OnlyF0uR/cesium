@@ -13,15 +13,15 @@ pub fn extract_pointer_length(combined: i64) -> (*const u8, usize) {
 
 #[no_mangle]
 pub unsafe extern "C" fn initialize() -> i32 {
-    h_define_state(1);
-
     let data_ptr = h_get_state(0);
     let (data_ptr, data_len) = extract_pointer_length(data_ptr);
+    if data_len == 0 {
+        return 1;
+    }
     let buffer = std::slice::from_raw_parts(data_ptr, data_len);
 
     let s = std::str::from_utf8(&buffer).unwrap();
     if s.len() != 0 {
-        println!("State value is {} (expected: empty)", s);
         return 1;
     }
 
@@ -39,7 +39,6 @@ pub unsafe extern "C" fn initialize() -> i32 {
 
     let s = std::str::from_utf8(&buffer).unwrap();
     if s != new_value {
-        println!("State value is {} (expected: new_value)", s);
         return 1;
     }
 

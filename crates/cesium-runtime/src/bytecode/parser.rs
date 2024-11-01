@@ -99,7 +99,7 @@ impl Analyzer {
                         AnalyzerError::ParserError(format!("Error reading operators: {:?}", e))
                     })?;
 
-                    let mut operators = Vec::new();
+                    let mut operators: Vec<Operator<'_>> = Vec::new();
                     for item in reader {
                         let item = item.map_err(|e| AnalyzerError::ParserError(e.to_string()))?;
                         operators.push(item);
@@ -220,9 +220,8 @@ fn pretty_print_functions(functions: &Vec<Function<'_>>) {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::Read, process::Command};
-
     use super::*;
+    use std::{fs::File, io::Read, process::Command};
 
     fn compile(package: &str) {
         Command::new("cargo")

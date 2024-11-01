@@ -1,0 +1,11 @@
+[package]
+name = "selenide"
+edition = "2021"
+version.workspace = true
+license = "GPL-3.0"
+publish = false
+
+
+[dependencies]
+wasmer.workspace = true
+wasmer-middlewares.workspace = true

@@ -11,3 +11,4 @@ wasmedge-sdk.workspace = true
 wasmedge-sys.workspace = true
 cesium-material.workspace = true
 wasmparser.workspace = true
+once_cell.workspace = true
