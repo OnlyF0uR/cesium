@@ -10,6 +10,8 @@ pub enum RuntimeError {
     MemoryNotInitialized,
     MemoryOutOfBounds,
     MemoryAllocationError,
+    InvalidExportReturnType,
+    OutOfGas,
 }
 
 // Implement Display for custom error formatting
@@ -28,6 +30,8 @@ impl fmt::Display for RuntimeError {
             RuntimeError::MemoryNotInitialized => write!(f, "Memory not initialized"),
             RuntimeError::MemoryOutOfBounds => write!(f, "Memory out of bounds"),
             RuntimeError::MemoryAllocationError => write!(f, "Memory allocation error"),
+            RuntimeError::InvalidExportReturnType => write!(f, "Invalid export return type"),
+            RuntimeError::OutOfGas => write!(f, "Out of gas"),
         }
     }
 }
@@ -44,6 +48,8 @@ impl Error for RuntimeError {
             RuntimeError::MemoryNotInitialized => None,
             RuntimeError::MemoryOutOfBounds => None,
             RuntimeError::MemoryAllocationError => None,
+            RuntimeError::InvalidExportReturnType => None,
+            RuntimeError::OutOfGas => None,
         }
     }
 }

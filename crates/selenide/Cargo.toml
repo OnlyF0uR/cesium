@@ -9,3 +9,4 @@ publish = false
 [dependencies]
 wasmer.workspace = true
 wasmer-middlewares.workspace = true
+cesium-material.workspace = true

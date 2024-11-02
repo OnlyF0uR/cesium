@@ -52,12 +52,13 @@ impl ContractEnv {
         caller_id: &str,
         state: Arc<Mutex<ContractState>>,
         data_accounts: Arc<Mutex<ContractDataAccounts>>,
+        memory_offset: u64,
     ) -> Self {
         Self {
             program_id: Arc::new(Mutex::new(program_id.to_string())),
             caller_id: Arc::new(Mutex::new(caller_id.to_string())),
             memory: None,
-            mem_offset: Arc::new(Mutex::new(0)),
+            mem_offset: Arc::new(Mutex::new(memory_offset)),
             state,
             data_accounts,
         }

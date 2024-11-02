@@ -22,8 +22,11 @@ pub fn allocate(
     let view = mem.view(store);
     view.write(ptr, item_data)?;
 
-    *offset_ref += ptr + item_len;
-    println!("Allocated memory at offset: {}::{}", ptr, item_len);
+    *offset_ref = ptr + item_len;
+    // println!(
+    //     "Allocated memory at offset: {}::{} (len: {})",
+    //     ptr, offset_ref, item_len
+    // );
     Ok((ptr, item_len))
 }
 
