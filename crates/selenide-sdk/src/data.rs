@@ -4,7 +4,6 @@ extern "C" {
     fn h_define_state(storage_len: i32);
     fn h_get_state(item_index: i32) -> i64;
     fn h_change_state(item_index: i32, value_ptr: *const u8, value_len: i32);
-    fn h_commit_state();
     fn h_initialize_data_account(
         owner_ptr: *const u8,
         owner_len: i32,
@@ -25,8 +24,6 @@ extern "C" {
         data_ptr: *const u8,
         data_len: i32,
     );
-    fn h_commit_account_data();
-    fn h_commit_all();
 }
 
 #[derive(Debug)]
@@ -69,12 +66,6 @@ impl State {
         }
 
         Ok(())
-    }
-
-    pub fn commit() {
-        unsafe {
-            h_commit_state();
-        }
     }
 }
 
@@ -141,17 +132,5 @@ impl DataAccount {
         }
 
         Ok(())
-    }
-
-    pub fn commit() {
-        unsafe {
-            h_commit_account_data();
-        }
-    }
-}
-
-pub fn commit_all() {
-    unsafe {
-        h_commit_all();
     }
 }

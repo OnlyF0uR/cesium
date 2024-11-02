@@ -7,10 +7,9 @@ members = [
   "crates/cesium-mempool",
   "crates/cesium-state",
   "crates/cesium-econ",
-  "crates/cesium-runtime",
-  "crates/cesium-contract-sdk",
-  "crates/cesium-contract-sdk-macros",
-  "crates/selenide",
+  "crates/selenide-sdk",
+  "crates/selenide-sdk-macros",
+  "crates/selenide-wasm",
 
   # Contracts
   "contracts/state",
@@ -64,6 +63,6 @@ cesium-mempool = { path = "crates/cesium-mempool" }
 cesium-state = { path = "crates/cesium-state" }
 cesium-econ = { path = "crates/cesium-econ" }
 cesium-runtime = { path = "crates/cesium-runtime" }
-cesium-contract-sdk = { path = "crates/cesium-contract-sdk" }
-cesium-contract-sdk-macros = { path = "crates/cesium-contract-sdk-macros" }
-selenide = { path = "crates/selenide" }
+selenide-sdk = { path = "crates/selenide-sdk" }
+selenide-sdk-macros = { path = "crates/selenide-sdk-macros" }
+selenide-wasm = { path = "crates/selenide-wasm" }

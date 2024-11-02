@@ -1,5 +1,5 @@
 [package]
-name = "cesium-contract-sdk-macros"
+name = "selenide-sdk-macros"
 edition = "2021"
 version.workspace = true
 license = "GPL-3.0"

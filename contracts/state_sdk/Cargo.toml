@@ -8,5 +8,5 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-cesium-contract-sdk.workspace = true
-cesium-contract-sdk-macros.workspace = true
+selenide-sdk.workspace = true
+selenide-sdk-macros.workspace = true
