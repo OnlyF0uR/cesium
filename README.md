@@ -3,4 +3,3 @@
 ### Dependencies
 
 - LLVM (for compiling rocksdb)
-- WasmEdge (for contracts in wasm)
