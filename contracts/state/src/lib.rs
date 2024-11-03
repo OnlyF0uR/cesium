@@ -3,7 +3,7 @@
 extern "C" {
     fn h_define_state(storage_len: i32);
     fn h_get_state(item_index: i32) -> i64;
-    fn h_change_state(item_index: i32, value_ptr: *const u8, value_len: i32);
+    fn h_write_state(item_index: i32, value_ptr: *const u8, value_len: i32);
     fn h_debug_log(value_ptr: *const u8, value_len: i32);
 }
 
@@ -35,7 +35,7 @@ pub unsafe extern "C" fn initialize() -> i32 {
     let value = "value";
     let value_ptr = value.as_bytes().as_ptr();
     let value_len = value.len() as i32;
-    h_change_state(0, value_ptr, value_len);
+    h_write_state(0, value_ptr, value_len);
 
     let data_ptr = h_get_state(0);
     let (data_ptr, data_len) = extract_pointer_length(data_ptr);
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn initialize() -> i32 {
     let value = "new_value";
     let value_ptr = value.as_bytes().as_ptr();
     let value_len = value.len() as i32;
-    h_change_state(0, value_ptr, value_len);
+    h_write_state(0, value_ptr, value_len);
 
     let data_ptr = h_get_state(0);
     let (data_ptr, data_len) = extract_pointer_length(data_ptr);

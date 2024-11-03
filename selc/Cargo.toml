@@ -1,5 +1,5 @@
 [package]
-name = "selenide-wasm"
+name = "selc"
 edition = "2021"
 version.workspace = true
 license = "GPL-3.0"
@@ -8,5 +8,5 @@ publish = false
 
 [dependencies]
 wasmer.workspace = true
-wasmer-middlewares.workspace = true
 cesium-material.workspace = true
+clap.workspace = true

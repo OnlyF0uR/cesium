@@ -3,7 +3,7 @@ use crate::utils::unfold_ptr;
 extern "C" {
     fn h_define_state(storage_len: i32);
     fn h_get_state(item_index: i32) -> i64;
-    fn h_change_state(item_index: i32, value_ptr: *const u8, value_len: i32);
+    fn h_write_state(item_index: i32, value_ptr: *const u8, value_len: i32);
     fn h_initialize_data_account(
         owner_ptr: *const u8,
         owner_len: i32,
@@ -62,7 +62,7 @@ impl State {
             let value_ptr: *const u8 = value.as_ptr();
             let value_len = value.len() as i32;
 
-            h_change_state(item_index, value_ptr, value_len);
+            h_write_state(item_index, value_ptr, value_len);
         }
 
         Ok(())

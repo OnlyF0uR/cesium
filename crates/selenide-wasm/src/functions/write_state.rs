@@ -1,8 +1,7 @@
 use crate::env::ContractEnv;
 use wasmer::FunctionEnvMut;
 
-// TODO: Change name to h_write_state
-pub fn h_change_state(
+pub fn h_write_state(
     mut env: FunctionEnvMut<ContractEnv>,
     item_index: i32,
     value_ptr: i32,

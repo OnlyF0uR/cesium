@@ -9,11 +9,13 @@ use wasmer_middlewares::{metering::get_remaining_points, Metering};
 
 use crate::env::{ContractDataAccounts, ContractEnv, ContractState};
 use crate::errors::RuntimeError;
-use crate::functions::change_state::h_change_state;
 use crate::functions::debug_log::h_debug_log;
 use crate::functions::define_state::h_define_state;
 use crate::functions::generate_id::h_gen_id;
+use crate::functions::get_account_data::h_get_account_data;
+use crate::functions::update_account_data::h_update_account_data;
 use crate::functions::get_state::h_get_state;
+use crate::functions::write_state::h_write_state;
 
 pub fn execute_function(
     wasm_bytes: &[u8],
@@ -60,9 +62,11 @@ pub fn execute_function(
       "env" => {
         "h_define_state" => Function::new_typed_with_env(&mut store, &cntr_env, h_define_state),
         "h_get_state" => Function::new_typed_with_env(&mut store, &cntr_env, h_get_state),
-        "h_change_state" => Function::new_typed_with_env(&mut store, &cntr_env, h_change_state),
+        "h_write_state" => Function::new_typed_with_env(&mut store, &cntr_env, h_write_state),
         "h_gen_id" => Function::new_typed_with_env(&mut store, &cntr_env, h_gen_id),
         "h_debug_log" => Function::new_typed_with_env(&mut store, &cntr_env, h_debug_log),
+        "h_get_account_data" => Function::new_typed_with_env(&mut store, &cntr_env, h_get_account_data),
+        "h_update_account_data" => Function::new_typed_with_env(&mut store, &cntr_env, h_update_account_data),
       }
     };
 
