@@ -13,7 +13,9 @@ wasm:
 	cargo build --target wasm32-unknown-unknown --release --package state
 	cargo build --target wasm32-unknown-unknown --release --package state-sdk
 	cargo build --target wasm32-unknown-unknown --release --package nomisma
-	$(MAKE) -C contracts/nomisma-c
+	@if [ "$(OS)" != "Windows_NT" ]; then \
+		$(MAKE) -C contracts/nomisma-c; \
+	fi
 
 test: 
 	cargo test --exclude selenide-sdk --exclude state --exclude state-sdk --exclude nomisma --workspace --verbose
