@@ -153,7 +153,9 @@ pub fn sig_byte_len(msg_len: usize) -> usize {
     SIG_BYTE_LEN + msg_len
 }
 
-fn slice_to_array_48<T>(slice: &[T]) -> Result<&[T; 48], Box<dyn std::error::Error + Send + Sync>> {
+pub fn slice_to_array_48<T>(
+    slice: &[T],
+) -> Result<&[T; 48], Box<dyn std::error::Error + Send + Sync>> {
     if slice.len() == 48 {
         Ok(unsafe { &*(slice.as_ptr() as *const [T; 48]) })
     } else {
@@ -161,7 +163,9 @@ fn slice_to_array_48<T>(slice: &[T]) -> Result<&[T; 48], Box<dyn std::error::Err
     }
 }
 
-fn slice_to_array_96<T>(slice: &[T]) -> Result<&[T; 96], Box<dyn std::error::Error + Send + Sync>> {
+pub fn slice_to_array_96<T>(
+    slice: &[T],
+) -> Result<&[T; 96], Box<dyn std::error::Error + Send + Sync>> {
     if slice.len() == 96 {
         Ok(unsafe { &*(slice.as_ptr() as *const [T; 96]) })
     } else {

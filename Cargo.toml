@@ -7,6 +7,7 @@ members = [
   "crates/cesium-mempool",
   "crates/cesium-state",
   "crates/cesium-econ",
+  "crates/cesium-proc",
   "crates/selenide-sdk",
   "crates/selenide-sdk-macros",
   "crates/selenide-wasm",
@@ -56,6 +57,7 @@ serde = { version = "1.0.213", features = ["derive"] }
 wasmer = { version = "5.0.0", features = ["singlepass"] }
 wasmer-middlewares = "5.0.0"
 clap = { version = "4.5.20", features = ["derive"]}
+dashmap = "6.1.0"
 # Inner libs
 cesium-storage = { path = "crates/cesium-storage" }
 cesium-material = { path = "crates/cesium-material" }
@@ -63,6 +65,7 @@ cesium-mempool = { path = "crates/cesium-mempool" }
 cesium-state = { path = "crates/cesium-state" }
 cesium-econ = { path = "crates/cesium-econ" }
 cesium-runtime = { path = "crates/cesium-runtime" }
+cesium-proc = { path = "crates/cesium-proc" }
 selenide-sdk = { path = "crates/selenide-sdk" }
 selenide-sdk-macros = { path = "crates/selenide-sdk-macros" }
 selenide-wasm = { path = "crates/selenide-wasm" }

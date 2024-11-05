@@ -1,0 +1,11 @@
+[package]
+name = "cesium-proc"
+edition = "2021"
+version.workspace = true
+license = "GPL-3.0"
+publish = false
+
+[dependencies]
+tokio.workspace = true
+cesium-material.workspace = true
+dashmap.workspace = true

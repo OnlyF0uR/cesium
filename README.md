@@ -3,3 +3,4 @@
 ### Dependencies
 
 - LLVM (for compiling rocksdb)
+- Emscripten (optional, for compiling C to wasm)

@@ -341,6 +341,15 @@ name = "cesium-node"
 version = "0.2.0"
 
 [[package]]
+name = "cesium-proc"
+version = "0.2.0"
+dependencies = [
+ "cesium-material",
+ "dashmap",
+ "tokio",
+]
+
+[[package]]
 name = "cesium-state"
 version = "0.2.0"
 dependencies = [
