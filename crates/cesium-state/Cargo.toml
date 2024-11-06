@@ -6,5 +6,6 @@ license = "GPL-3.0"
 publish = false
 
 [dependencies]
+cesium-crypto.workspace = true
 cesium-material.workspace = true
 tokio.workspace = true

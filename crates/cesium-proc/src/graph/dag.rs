@@ -1,4 +1,4 @@
-use cesium_material::{
+use cesium_crypto::{
     id::generate_id,
     keys::{slice_to_array_48, SIG_BYTE_LEN},
 };

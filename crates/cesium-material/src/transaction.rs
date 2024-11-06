@@ -1,4 +1,6 @@
-use crate::{instruction::Instruction, keys::KeyPair};
+use cesium_crypto::keys::KeyPair;
+
+use crate::instruction::Instruction;
 
 pub struct Transaction {
     pub instructions: Vec<Instruction>,

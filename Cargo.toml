@@ -2,11 +2,11 @@
 resolver = "2"
 members = [
   # Inner libs
+  "crates/cesium-crypto",
   "crates/cesium-storage",
   "crates/cesium-material",
   "crates/cesium-mempool",
   "crates/cesium-state",
-  "crates/cesium-econ",
   "crates/cesium-proc",
   "crates/selenide-sdk",
   "crates/selenide-sdk-macros",
@@ -59,11 +59,11 @@ wasmer-middlewares = "5.0.0"
 clap = { version = "4.5.20", features = ["derive"]}
 dashmap = "6.1.0"
 # Inner libs
+cesium-crypto = { path = "crates/cesium-crypto" }
 cesium-storage = { path = "crates/cesium-storage" }
 cesium-material = { path = "crates/cesium-material" }
 cesium-mempool = { path = "crates/cesium-mempool" }
 cesium-state = { path = "crates/cesium-state" }
-cesium-econ = { path = "crates/cesium-econ" }
 cesium-runtime = { path = "crates/cesium-runtime" }
 cesium-proc = { path = "crates/cesium-proc" }
 selenide-sdk = { path = "crates/selenide-sdk" }

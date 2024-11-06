@@ -7,7 +7,7 @@ publish = false
 
 
 [dependencies]
-cesium-material.workspace = true
+cesium-crypto.workspace = true
 rocksdb.workspace = true
 # tokio.workspace = true
 bincode.workspace = true

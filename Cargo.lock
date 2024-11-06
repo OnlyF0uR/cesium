@@ -313,11 +313,7 @@ name = "cesium-cli"
 version = "0.2.0"
 
 [[package]]
-name = "cesium-econ"
-version = "0.2.0"
-
-[[package]]
-name = "cesium-material"
+name = "cesium-crypto"
 version = "0.2.0"
 dependencies = [
  "bs58",
@@ -327,6 +323,14 @@ dependencies = [
  "rand",
  "serde",
  "sha3",
+]
+
+[[package]]
+name = "cesium-material"
+version = "0.2.0"
+dependencies = [
+ "cesium-crypto",
+ "rand",
 ]
 
 [[package]]
@@ -344,7 +348,7 @@ version = "0.2.0"
 name = "cesium-proc"
 version = "0.2.0"
 dependencies = [
- "cesium-material",
+ "cesium-crypto",
  "dashmap",
  "tokio",
 ]
@@ -353,6 +357,7 @@ dependencies = [
 name = "cesium-state"
 version = "0.2.0"
 dependencies = [
+ "cesium-crypto",
  "cesium-material",
  "tokio",
 ]
@@ -362,7 +367,7 @@ name = "cesium-storage"
 version = "0.2.0"
 dependencies = [
  "bincode",
- "cesium-material",
+ "cesium-crypto",
  "rocksdb",
  "serde",
  "tempfile",
@@ -1841,7 +1846,7 @@ dependencies = [
 name = "selenide-wasm"
 version = "0.2.0"
 dependencies = [
- "cesium-material",
+ "cesium-crypto",
  "wasmer",
  "wasmer-middlewares",
 ]

@@ -1,10 +1,9 @@
+use cesium_crypto::keys::{KeyPair, PublicKeyBytes};
 use rand::Rng;
 
-use crate::{
-    constants::MAX_BLOCK_TRANSACTIONS,
-    keys::{KeyPair, PublicKeyBytes},
-    transaction::Transaction,
-};
+use crate::transaction::Transaction;
+
+const MAX_BLOCK_TRANSACTIONS: usize = 2250;
 
 pub struct Block {
     pub index: u64,
@@ -97,12 +96,14 @@ impl Block {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{
+    use cesium_crypto::{
         constants::{NATIVE_DECIMALS, NATIVE_TOKEN},
-        instruction::Instruction,
-        keys::{self, KeyPair, SIG_BYTE_LEN},
+        keys::{self, SIG_BYTE_LEN},
     };
+
+    use crate::instruction::Instruction;
+
+    use super::*;
 
     #[test]
     fn test_block() {

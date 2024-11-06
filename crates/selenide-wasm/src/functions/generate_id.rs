@@ -1,4 +1,4 @@
-use cesium_material::id::generate_id;
+use cesium_crypto::id::generate_id;
 use wasmer::FunctionEnvMut;
 
 use crate::{env::ContractEnv, memory};

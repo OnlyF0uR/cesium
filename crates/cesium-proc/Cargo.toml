@@ -7,5 +7,5 @@ publish = false
 
 [dependencies]
 tokio.workspace = true
-cesium-material.workspace = true
+cesium-crypto.workspace = true
 dashmap.workspace = true

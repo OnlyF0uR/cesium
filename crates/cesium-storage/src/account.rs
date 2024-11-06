@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use cesium_material::id::{generate_id, to_readable_id};
+use cesium_crypto::id::{generate_id, to_readable_id};
 use rocksdb::{Options, WriteBatch, DB};
 use serde::{Deserialize, Serialize};
 
@@ -85,7 +85,7 @@ impl DataAccountManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cesium_material::keys::KeyPair;
+    use cesium_crypto::keys::KeyPair;
     use tempfile::TempDir;
 
     #[test]

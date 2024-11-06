@@ -1,4 +1,5 @@
-use cesium_material::{block::Block, keys::KeyPair};
+use cesium_crypto::keys::KeyPair;
+use cesium_material::block::Block;
 use std::sync::Arc;
 use tokio::sync::OnceCell;
 

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use cesium_material::serializer::Array48;
+use cesium_crypto::serializer::Array48;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DataObject {
