@@ -4,3 +4,6 @@
 
 - LLVM (for compiling rocksdb)
 - Emscripten (optional, for compiling C to wasm)
+
+### Smart contracts
+Smart contracts are written in WASM and executed in a control wasmer virtual machine named Selenide. The Selc program can be used to compile (including Universal-AOT) a smart contract to the desired format.
