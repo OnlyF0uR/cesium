@@ -85,7 +85,7 @@ impl DataAccountManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cesium_crypto::keys::KeyPair;
+    use cesium_crypto::keys::Account;
     use tempfile::TempDir;
 
     #[test]
@@ -93,11 +93,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let manager = DataAccountManager::new(temp_dir.path().to_str().unwrap()).unwrap();
 
-        let kp = KeyPair::create();
+        let kp = Account::create();
         let address = kp.to_public_key_readable();
 
         let data_object = DataObject {
-            type_id: *KeyPair::create().to_public_key_bytes(),
+            type_id: *Account::create().to_public_key_bytes(),
             data: vec![0x01, 0x02, 0x03],
         };
 

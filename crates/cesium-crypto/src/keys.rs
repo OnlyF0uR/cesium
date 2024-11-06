@@ -11,7 +11,7 @@ pub const SIG_BYTE_LEN: usize = 16224; // 35664 (192f), 16224 (192s)
 pub type PublicKeyBytes = [u8; PUB_BYTE_LEN];
 pub type SecretKeyBytes = [u8; SEC_BYTE_LEN];
 
-pub struct KeyPair {
+pub struct Account {
     public_key: PublicKey,
     secret_key: Option<SecretKey>,
 }
@@ -25,9 +25,9 @@ macro_rules! ensure_secret_key {
     };
 }
 
-impl KeyPair {
-    pub fn readonly_from_pub(public_key: PublicKey) -> KeyPair {
-        KeyPair {
+impl Account {
+    pub fn readonly_from_pub(public_key: PublicKey) -> Account {
+        Account {
             public_key,
             secret_key: None,
         }
@@ -35,18 +35,18 @@ impl KeyPair {
 
     pub fn readonly_from_readable_pub(
         public_key_s: &str,
-    ) -> Result<KeyPair, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Account, Box<dyn std::error::Error + Send + Sync>> {
         let pk_bytes = bs58::decode(public_key_s).into_vec()?;
         if pk_bytes.len() != PUB_BYTE_LEN {
             return Err("Invalid public key length".into());
         }
         let public_key = PublicKey::from_bytes(&pk_bytes)?;
-        Ok(KeyPair::readonly_from_pub(public_key))
+        Ok(Account::readonly_from_pub(public_key))
     }
 
-    pub fn create() -> KeyPair {
+    pub fn create() -> Account {
         let (pk, sk) = pqcrypto_sphincsplus::sphincsshake192ssimple_keypair();
-        KeyPair {
+        Account {
             public_key: pk,
             secret_key: Some(sk),
         }
@@ -87,14 +87,14 @@ impl KeyPair {
     pub fn from_bytes(
         public_key_bytes: &[u8],
         secret_key_bytes: &[u8],
-    ) -> Result<KeyPair, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Account, Box<dyn std::error::Error + Send + Sync>> {
         if public_key_bytes.len() != PUB_BYTE_LEN || secret_key_bytes.len() != SEC_BYTE_LEN {
             return Err("Invalid key length".into());
         }
 
         let public_key = PublicKey::from_bytes(public_key_bytes)?;
         let secret_key = SecretKey::from_bytes(secret_key_bytes)?;
-        Ok(KeyPair {
+        Ok(Account {
             public_key,
             secret_key: Some(secret_key),
         })
@@ -103,11 +103,11 @@ impl KeyPair {
     pub fn from_readable(
         public_key_s: &str,
         secret_key_s: &str,
-    ) -> Result<KeyPair, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Account, Box<dyn std::error::Error + Send + Sync>> {
         let pk_bytes = bs58::decode(public_key_s).into_vec()?;
         let sk_bytes = hex::decode(secret_key_s)?;
 
-        KeyPair::from_bytes(&pk_bytes, &sk_bytes)
+        Account::from_bytes(&pk_bytes, &sk_bytes)
     }
 
     pub fn to_bytes(
@@ -178,27 +178,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_keypair() {
-        let kp = KeyPair::create();
+    fn test_account() {
+        let kp = Account::create();
         let (pk, sk) = kp.to_bytes().unwrap();
-        let kp2 = KeyPair::from_bytes(pk, sk).unwrap();
+        let kp2 = Account::from_bytes(pk, sk).unwrap();
         assert_eq!(kp.to_public_key_bytes(), kp2.to_public_key_bytes());
         assert_eq!(kp.to_public_key_readable(), kp2.to_public_key_readable());
     }
 
     #[test]
-    fn test_keypair_readable() {
-        let kp = KeyPair::create();
+    fn test_account_readable() {
+        let kp = Account::create();
         let (pk_s, sk_s) = kp.to_readable().unwrap();
-        let kp2 = KeyPair::from_readable(&pk_s, &sk_s).unwrap();
+        let kp2 = Account::from_readable(&pk_s, &sk_s).unwrap();
 
         assert_eq!(kp.to_public_key_bytes(), kp2.to_public_key_bytes());
         assert_eq!(kp.to_public_key_readable(), kp2.to_public_key_readable());
     }
 
     #[test]
-    fn test_keypair_public_key() {
-        let kp = KeyPair::create();
+    fn test_account_public_key() {
+        let kp = Account::create();
 
         let pk = kp.to_public_key_bytes();
         let pk2 = PublicKey::from_bytes(pk).unwrap();
@@ -206,9 +206,9 @@ mod tests {
     }
 
     #[test]
-    fn test_keypair_public_key_readable() {
-        // Create a new keypair
-        let kp = KeyPair::create();
+    fn test_account_public_key_readable() {
+        // Create a new Account
+        let kp = Account::create();
         // Get a readable public key (wallet address)
         let pk_s = kp.to_public_key_readable();
 
@@ -220,24 +220,24 @@ mod tests {
     }
 
     #[test]
-    fn test_keypair_secret_key() {
-        let kp = KeyPair::create();
+    fn test_account_secret_key() {
+        let kp = Account::create();
         let sk = kp.secret_key.as_ref().unwrap().as_bytes().to_vec();
         let sk2 = SecretKey::from_bytes(&sk).unwrap();
         assert_eq!(kp.secret_key.unwrap().as_bytes(), sk2.as_bytes());
     }
 
     #[test]
-    fn test_keypair_secret_key_readable() {
-        let kp = KeyPair::create();
+    fn test_account_secret_key_readable() {
+        let kp = Account::create();
         let sk_s = hex::encode(kp.secret_key.as_ref().unwrap().as_bytes());
         let sk2 = SecretKey::from_bytes(&hex::decode(sk_s).unwrap()).unwrap();
         assert_eq!(kp.secret_key.unwrap().as_bytes(), sk2.as_bytes());
     }
 
     #[test]
-    fn test_keypair_secret_key_missing() {
-        let kp = KeyPair {
+    fn test_account_secret_key_missing() {
+        let kp = Account {
             public_key: PublicKey::from_bytes(&[0; 48]).unwrap(),
             secret_key: None,
         };
@@ -247,7 +247,7 @@ mod tests {
 
     #[test]
     fn test_signature() {
-        let kp = KeyPair::create();
+        let kp = Account::create();
         let message = b"Hello, world!";
         let sig = kp.digest(message).unwrap();
         assert!(kp.verify(message, &sig).unwrap());

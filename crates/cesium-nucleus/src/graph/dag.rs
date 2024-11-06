@@ -2,13 +2,11 @@ use cesium_crypto::{
     id::generate_id,
     keys::{slice_to_array_48, SIG_BYTE_LEN},
 };
+use cesium_nebula::transaction::Transaction;
 use dashmap::DashMap;
 use std::sync::Arc;
 
-use super::{
-    errors::GraphError,
-    node::{GraphNode, NodeInput},
-};
+use super::{errors::GraphError, node::GraphNode};
 
 pub struct Graph {
     nodes: Arc<DashMap<[u8; 48], Arc<GraphNode>>>,
@@ -32,7 +30,7 @@ impl Graph {
     }
 
     // The minimal amount of nodes required to kick off the graph is
-    pub async fn add_genesis(&self, input: &NodeInput) -> Result<(), GraphError> {
+    pub async fn add_genesis(&self, input: &Transaction) -> Result<(), GraphError> {
         if let Err(e) = self.validate_item(input) {
             return Err(e);
         }
@@ -58,7 +56,7 @@ impl Graph {
         Ok(())
     }
 
-    pub async fn add_item(&self, input: &NodeInput) -> Result<(), GraphError> {
+    pub async fn add_item(&self, input: &Transaction) -> Result<(), GraphError> {
         if let Err(e) = self.validate_item(input) {
             return Err(e);
         }
@@ -132,13 +130,18 @@ impl Graph {
         self.get_nodes_with_sorting(false, 5).await
     }
 
-    fn validate_item(&self, input: &NodeInput) -> Result<(), GraphError> {
+    fn validate_item(&self, input: &Transaction) -> Result<(), GraphError> {
+        if input.digest.is_none() {
+            return Err(GraphError::MissingSignature);
+        }
+
         // Some very basic validation
         if input.instructions.is_empty() {
             return Err(GraphError::InvalidNodeInput);
         }
 
-        if input.digest.len() < SIG_BYTE_LEN {
+        let sig = input.digest.as_ref().unwrap();
+        if sig.len() < SIG_BYTE_LEN {
             return Err(GraphError::InvalidNodeInput);
         }
 

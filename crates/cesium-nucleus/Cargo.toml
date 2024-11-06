@@ -1,5 +1,5 @@
 [package]
-name = "cesium-proc"
+name = "cesium-nucleus"
 edition = "2021"
 version.workspace = true
 license = "GPL-3.0"
@@ -8,4 +8,5 @@ publish = false
 [dependencies]
 tokio.workspace = true
 cesium-crypto.workspace = true
+cesium-nebula.workspace = true
 dashmap.workspace = true

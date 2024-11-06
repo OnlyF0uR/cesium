@@ -6,4 +6,3 @@ license = "GPL-3.0"
 publish = false
 
 [dependencies]
-cesium-material.workspace = true

@@ -1,11 +1,10 @@
 [package]
-name = "cesium-material"
+name = "cesium-nebula"
 edition = "2021"
 version.workspace = true
 license = "GPL-3.0"
 publish = false
 
-
 [dependencies]
-rand.workspace = true
 cesium-crypto.workspace = true
+selenide-runtime.workspace = true

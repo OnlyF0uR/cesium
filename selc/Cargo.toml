@@ -8,5 +8,4 @@ publish = false
 
 [dependencies]
 wasmer.workspace = true
-cesium-material.workspace = true
 clap.workspace = true

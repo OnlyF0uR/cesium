@@ -3,7 +3,7 @@
 # Compiler and flags
 EMCC = emcc
 C_FILES = contract.c convert.c
-OUTPUT = ../../target/nomisma-c.wasm
+OUTPUT = ../../target/example-c.wasm
 OPTIMIZATION = -O3
 EXPORTED_FUNCTIONS = -s "EXPORTED_FUNCTIONS=['_initialize', '_create']"
 WASM_FLAG = -s WASM=1

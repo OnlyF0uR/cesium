@@ -326,18 +326,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "cesium-material"
+name = "cesium-mempool"
+version = "0.2.0"
+
+[[package]]
+name = "cesium-nebula"
 version = "0.2.0"
 dependencies = [
  "cesium-crypto",
- "rand",
-]
-
-[[package]]
-name = "cesium-mempool"
-version = "0.2.0"
-dependencies = [
- "cesium-material",
+ "selenide-runtime",
 ]
 
 [[package]]
@@ -345,20 +342,12 @@ name = "cesium-node"
 version = "0.2.0"
 
 [[package]]
-name = "cesium-proc"
+name = "cesium-nucleus"
 version = "0.2.0"
 dependencies = [
  "cesium-crypto",
+ "cesium-nebula",
  "dashmap",
- "tokio",
-]
-
-[[package]]
-name = "cesium-state"
-version = "0.2.0"
-dependencies = [
- "cesium-crypto",
- "cesium-material",
  "tokio",
 ]
 
@@ -1336,10 +1325,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nomisma"
-version = "0.1.0"
-
-[[package]]
 name = "num-conv"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1824,9 +1809,17 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 name = "selc"
 version = "0.2.0"
 dependencies = [
- "cesium-material",
  "clap",
  "wasmer",
+]
+
+[[package]]
+name = "selenide-runtime"
+version = "0.2.0"
+dependencies = [
+ "cesium-crypto",
+ "wasmer",
+ "wasmer-middlewares",
 ]
 
 [[package]]
@@ -1840,15 +1833,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "selenide-wasm"
-version = "0.2.0"
-dependencies = [
- "cesium-crypto",
- "wasmer",
- "wasmer-middlewares",
 ]
 
 [[package]]
