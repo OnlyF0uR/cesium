@@ -112,12 +112,17 @@ impl Graph {
     async fn pack_history(&self) -> Result<(), GraphError> {
         // Get all nodes with 5 or more confirmations
         let nodes = self.get_packable_nodes().await;
-        println!("Nodes to pack: {:?}", nodes);
+        // println!("Nodes to pack: {:?}", nodes);
 
         // TODO: This
         // This function will get the 45% of nodes with the most confirmations provided
-        // they have 5 or more confirmations, then writes them to rocksdb and removes them
-        // from memory
+        // they have 5 or more confirmations, then writes them to rocksdb
+
+        // Remove nodes from memory
+        for node in nodes {
+            self.nodes.remove(&node.id);
+        }
+
         Ok(())
     }
 
@@ -199,5 +204,115 @@ impl Graph {
         };
 
         iter.map(|(node, _)| node.clone()).collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cesium_crypto::keys::Account;
+    use cesium_nebula::instruction::{Instruction, InstructionType};
+    use std::sync::Arc;
+    use tokio::task;
+
+    #[tokio::test]
+    async fn test_add_valid_transaction() {
+        let acc = Account::create();
+        let dag = Graph::default();
+
+        let tx = create_valid_transaction(&acc);
+        dag.add_genesis(&tx).await.unwrap();
+
+        assert_eq!(dag.nodes.len(), 1);
+        assert_valid_node(&dag, tx.instructions.clone());
+    }
+
+    #[tokio::test]
+    async fn test_add_transaction_with_missing_signature() {
+        let dag = Graph::default();
+
+        let mut tx = Transaction::new(18000, 0);
+        tx.add_instruction(Instruction::new(
+            InstructionType::CurrencyTransfer,
+            Vec::new(),
+        ))
+        .unwrap();
+
+        let result = dag.add_genesis(&tx).await;
+        assert!(result.is_err());
+        assert_eq!(dag.nodes.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_transaction_addition() {
+        let acc = Arc::new(Account::create());
+        let dag = Arc::new(Graph::default());
+
+        dag.add_genesis(&create_valid_transaction(&acc))
+            .await
+            .unwrap();
+
+        let mut handles = Vec::with_capacity(10);
+        for _ in 0..10 {
+            let dag = Arc::clone(&dag);
+            let acc = Arc::clone(&acc);
+            handles.push(task::spawn(async move {
+                let tx = create_valid_transaction(&acc);
+                dag.add_item(&tx).await.unwrap();
+            }));
+        }
+
+        tokio::join!(async {
+            for handle in handles {
+                handle.await.unwrap();
+            }
+        });
+
+        assert_eq!(dag.nodes.len(), 11);
+    }
+
+    #[tokio::test]
+    async fn test_pack_history() {
+        let acc = Account::create();
+        let mut dag = Graph::default();
+        dag.set_interval_count(5);
+        dag.set_min_confirmations(3);
+        dag.set_proportion(0.4);
+
+        // Add genesis node
+        dag.add_genesis(&create_valid_transaction(&acc))
+            .await
+            .unwrap();
+
+        for _ in 0..10 {
+            let tx = create_valid_transaction(&acc);
+            dag.add_item(&tx).await.unwrap();
+        }
+
+        // Confirm some nodes to trigger packing
+        for node in dag.nodes.iter() {
+            let mut lock = node.value().confirmations.write().await;
+            *lock = 3;
+        }
+
+        dag.pack_history().await.unwrap();
+        assert_eq!(dag.nodes.len(), 1);
+    }
+
+    fn create_valid_transaction(acc: &Account) -> Transaction {
+        let mut tx = Transaction::new(18000, 0);
+        tx.add_instruction(Instruction::new(
+            InstructionType::CurrencyTransfer,
+            Vec::new(),
+        ))
+        .unwrap();
+        tx.sign(acc).unwrap();
+        tx
+    }
+
+    fn assert_valid_node(dag: &Graph, instructions: Vec<Instruction>) {
+        let node = dag.nodes.iter().next().unwrap().value().clone();
+        assert_eq!(node.instructions.len(), instructions.len());
+        // Add more assertions about the node structure and content
     }
 }

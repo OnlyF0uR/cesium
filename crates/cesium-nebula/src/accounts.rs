@@ -27,6 +27,7 @@ impl UserAccount {
     }
 
     pub fn from_id(_id: PublicKeyBytes) -> ContractAccount {
+        // Retrieve the data corresponding to the account id
         todo!()
     }
 
