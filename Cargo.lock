@@ -309,8 +309,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "cesium-cli"
+name = "cesium-consensus"
 version = "0.2.0"
+dependencies = [
+ "cesium-nucleus",
+]
 
 [[package]]
 name = "cesium-crypto"
@@ -326,20 +329,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "cesium-mempool"
-version = "0.2.0"
-
-[[package]]
 name = "cesium-nebula"
 version = "0.2.0"
 dependencies = [
  "cesium-crypto",
  "selenide-runtime",
 ]
-
-[[package]]
-name = "cesium-node"
-version = "0.2.0"
 
 [[package]]
 name = "cesium-nucleus"
@@ -349,6 +344,13 @@ dependencies = [
  "cesium-nebula",
  "dashmap",
  "tokio",
+]
+
+[[package]]
+name = "cesium-sdk"
+version = "0.2.0"
+dependencies = [
+ "cesium-nucleus",
 ]
 
 [[package]]
@@ -437,6 +439,10 @@ name = "clap_lex"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
+
+[[package]]
+name = "clisium"
+version = "0.2.0"
 
 [[package]]
 name = "cmake"
@@ -2248,6 +2254,10 @@ name = "uuid"
 version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8c5f0a0af699448548ad1a2fbf920fb4bee257eae39953ba95cb84891a0446a"
+
+[[package]]
+name = "validator"
+version = "0.2.0"
 
 [[package]]
 name = "vcpkg"

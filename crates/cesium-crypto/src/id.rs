@@ -22,6 +22,14 @@ pub fn generate_id() -> Vec<u8> {
     result
 }
 
+pub fn generate_id_from_data(data: &[u8]) -> String {
+    let mut hasher = sha3::Sha3_384::new();
+    hasher.update(data);
+    let result = hasher.finalize().to_vec();
+
+    to_readable_id(&result)
+}
+
 pub fn to_readable_id(id: &[u8]) -> String {
     bs58::encode(id).into_string()
 }

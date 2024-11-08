@@ -1,15 +1,15 @@
-use cesium_crypto::{
-    id::generate_id,
-    keys::{slice_to_array_48, SIG_BYTE_LEN},
-};
+use cesium_crypto::keys::SIG_BYTE_LEN;
 use cesium_nebula::transaction::Transaction;
 use dashmap::DashMap;
 use std::sync::Arc;
 
-use super::{errors::GraphError, node::GraphNode};
+use super::{
+    errors::GraphError,
+    node::{GraphNode, NodeId},
+};
 
 pub struct Graph {
-    nodes: Arc<DashMap<[u8; 48], Arc<GraphNode>>>,
+    nodes: Arc<DashMap<NodeId, Arc<GraphNode>>>,
     pack_iv_count: usize,
     pack_min_conf: u32,
     pack_proportion: f32,
@@ -36,18 +36,12 @@ impl Graph {
         }
 
         // Compute random node_id of 48 characters
-        let node_id = generate_id();
-        let node_id = match slice_to_array_48(node_id.as_slice()) {
-            Ok(id) => *id,
-            // This should never happen
-            Err(_) => return Err(GraphError::InvalidNodeId),
-        };
-
+        let node_id = input.create_id();
         let node = GraphNode {
-            id: node_id,
+            id: node_id.clone(),
             instructions: input.instructions.clone(),
             prev_nodes: vec![],
-            confirmations: 0.into(),
+            references: 0.into(),
         };
         let node_arc: Arc<GraphNode> = Arc::new(node);
 
@@ -62,12 +56,7 @@ impl Graph {
         }
 
         // Compute random node_id of 48 characters
-        let node_id = generate_id();
-        let node_id = match slice_to_array_48(node_id.as_slice()) {
-            Ok(id) => *id,
-            // This should never happen
-            Err(_) => return Err(GraphError::InvalidNodeId),
-        };
+        let node_id = input.create_id();
 
         let ref_nodes = self.get_pending_nodes().await;
         if ref_nodes.is_empty() {
@@ -79,15 +68,16 @@ impl Graph {
         }
 
         let node = GraphNode {
-            id: node_id,
+            id: node_id.clone(),
             instructions: input.instructions.clone(),
-            prev_nodes: ref_nodes.iter().map(|n| n.id).collect(),
-            confirmations: 0.into(),
+            prev_nodes: ref_nodes.iter().map(|n| n.id.clone()).collect(),
+            references: 0.into(),
         };
         let node_arc = Arc::new(node);
 
         // Add node to the graph
         self.nodes.insert(node_id, node_arc);
+        // TODO: Gossip the node to other validators
 
         // if nodes length
         if self.nodes.len() >= self.pack_iv_count {
@@ -101,7 +91,7 @@ impl Graph {
         self.pack_iv_count = count;
     }
 
-    pub fn set_min_confirmations(&mut self, count: u32) {
+    pub fn set_min_references(&mut self, count: u32) {
         self.pack_min_conf = count;
     }
 
@@ -110,13 +100,13 @@ impl Graph {
     }
 
     async fn pack_history(&self) -> Result<(), GraphError> {
-        // Get all nodes with 5 or more confirmations
+        // Get all nodes with 5 or more references
         let nodes = self.get_packable_nodes().await;
         // println!("Nodes to pack: {:?}", nodes);
 
         // TODO: This
-        // This function will get the 45% of nodes with the most confirmations provided
-        // they have 5 or more confirmations, then writes them to rocksdb
+        // This function will get the 45% of nodes with the most references provided
+        // they have 5 or more references, then writes them to rocksdb
 
         // Remove nodes from memory
         for node in nodes {
@@ -169,15 +159,15 @@ impl Graph {
                 .collect()
         };
 
-        // Acquire write locks on the confirmations of the previous nodes
+        // Acquire write locks on the references of the previous nodes
         let mut prev_nodes_confirmation_locks = Vec::with_capacity(prev_nodes.len());
         for prev_node in &prev_nodes {
-            prev_nodes_confirmation_locks.push(prev_node.confirmations.write().await);
+            prev_nodes_confirmation_locks.push(prev_node.references.write().await);
         }
 
-        // Update the confirmations of the previous nodes
-        for mut confirmations_lock in prev_nodes_confirmation_locks {
-            *confirmations_lock += 1;
+        // Update the references of the previous nodes
+        for mut references_lock in prev_nodes_confirmation_locks {
+            *references_lock += 1;
         }
 
         Ok(())
@@ -185,22 +175,22 @@ impl Graph {
 
     async fn get_nodes_with_sorting(&self, take_top: bool, limit: usize) -> Vec<Arc<GraphNode>> {
         // Preallocate vector with known capacity
-        let mut nodes_with_confirmations = Vec::with_capacity(self.nodes.len());
+        let mut nodes_with_references = Vec::with_capacity(self.nodes.len());
 
-        // Collect nodes and confirmations
+        // Collect nodes and references
         for node in self.nodes.iter() {
-            let confirmations = *node.confirmations.read().await;
-            nodes_with_confirmations.push((node.clone(), confirmations));
+            let references = *node.references.read().await;
+            nodes_with_references.push((node.clone(), references));
         }
 
         // Sort by confirmation count
-        nodes_with_confirmations.sort_by(|a, b| a.1.cmp(&b.1));
+        nodes_with_references.sort_by(|a, b| a.1.cmp(&b.1));
 
         // Take from either end of the sorted list depending on take_top
         let iter: Box<dyn Iterator<Item = &(Arc<GraphNode>, u32)>> = if take_top {
-            Box::new(nodes_with_confirmations.iter().rev().take(limit))
+            Box::new(nodes_with_references.iter().rev().take(limit))
         } else {
-            Box::new(nodes_with_confirmations.iter().take(limit))
+            Box::new(nodes_with_references.iter().take(limit))
         };
 
         iter.map(|(node, _)| node.clone()).collect()
@@ -276,7 +266,7 @@ mod tests {
         let acc = Account::create();
         let mut dag = Graph::default();
         dag.set_interval_count(5);
-        dag.set_min_confirmations(3);
+        dag.set_min_references(3);
         dag.set_proportion(0.4);
 
         // Add genesis node
@@ -291,7 +281,7 @@ mod tests {
 
         // Confirm some nodes to trigger packing
         for node in dag.nodes.iter() {
-            let mut lock = node.value().confirmations.write().await;
+            let mut lock = node.value().references.write().await;
             *lock = 3;
         }
 

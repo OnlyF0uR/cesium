@@ -1,4 +1,4 @@
-use cesium_crypto::keys::Account;
+use cesium_crypto::{id::to_readable_id, keys::Account};
 
 use crate::instruction::Instruction;
 
@@ -36,6 +36,21 @@ impl Transaction {
         bytes.extend(self.reserved_gas.to_le_bytes());
         bytes.extend(self.priority_fee.to_le_bytes());
         bytes
+    }
+
+    pub fn create_id(&self) -> String {
+        if self.digest.is_none() {
+            panic!("Transaction is not signed");
+        }
+        let mut bytes = Vec::new();
+        for instruction in &self.instructions {
+            bytes.extend(instruction.to_bytes());
+        }
+        bytes.extend(self.reserved_gas.to_le_bytes());
+        bytes.extend(self.priority_fee.to_le_bytes());
+        bytes.extend(self.digest.as_ref().unwrap().to_vec());
+
+        to_readable_id(&bytes)
     }
 
     pub fn sign(&mut self, kp: &Account) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

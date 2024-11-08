@@ -4,9 +4,10 @@ members = [
   # Inner libs
   "crates/cesium-crypto",
   "crates/cesium-storage",
-  "crates/cesium-mempool",
   "crates/cesium-nucleus",
   "crates/cesium-nebula",
+  "crates/cesium-consensus",
+  "crates/cesium-sdk",
   "crates/selenide-sdk",
   "crates/selenide-sdk-macros",
   "crates/selenide-runtime",
@@ -16,8 +17,8 @@ members = [
   "contracts/state_sdk",
 
   # Executables
-  "cesium-node",
-  "cesium-cli",
+  "validator",
+  "clisium",
   "selc"
 ]
 
@@ -59,10 +60,10 @@ dashmap = "6.1.0"
 # Inner libs
 cesium-crypto = { path = "crates/cesium-crypto" }
 cesium-storage = { path = "crates/cesium-storage" }
-cesium-mempool = { path = "crates/cesium-mempool" }
 cesium-runtime = { path = "crates/cesium-runtime" }
 cesium-nucleus = { path = "crates/cesium-nucleus" }
 cesium-nebula = { path = "crates/cesium-nebula" }
+cesium-consensus = { path = "crates/cesium-consensus" }
 selenide-sdk = { path = "crates/selenide-sdk" }
 selenide-sdk-macros = { path = "crates/selenide-sdk-macros" }
 selenide-runtime = { path = "crates/selenide-runtime" }
