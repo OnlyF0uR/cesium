@@ -1,4 +1,4 @@
-use crate::constants::NATIVE_TOKEN;
+use cesium_standards::StandardToken;
 use pqcrypto_sphincsplus::sphincsshake192ssimple::{PublicKey, SecretKey};
 use pqcrypto_traits::sign::{
     PublicKey as PqPublicKey, SecretKey as PqSecretKey, SignedMessage as PqSignedMessage,
@@ -26,8 +26,8 @@ macro_rules! ensure_secret_key {
 }
 
 impl Account {
-    pub fn readonly_from_pub(public_key: PublicKey) -> Account {
-        Account {
+    pub fn readonly_from_pub(public_key: PublicKey) -> Self {
+        Self {
             public_key,
             secret_key: None,
         }
@@ -35,18 +35,18 @@ impl Account {
 
     pub fn readonly_from_readable_pub(
         public_key_s: &str,
-    ) -> Result<Account, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let pk_bytes = bs58::decode(public_key_s).into_vec()?;
         if pk_bytes.len() != PUB_BYTE_LEN {
             return Err("Invalid public key length".into());
         }
         let public_key = PublicKey::from_bytes(&pk_bytes)?;
-        Ok(Account::readonly_from_pub(public_key))
+        Ok(Self::readonly_from_pub(public_key))
     }
 
-    pub fn create() -> Account {
+    pub fn create() -> Self {
         let (pk, sk) = pqcrypto_sphincsplus::sphincsshake192ssimple_keypair();
-        Account {
+        Self {
             public_key: pk,
             secret_key: Some(sk),
         }
@@ -87,14 +87,14 @@ impl Account {
     pub fn from_bytes(
         public_key_bytes: &[u8],
         secret_key_bytes: &[u8],
-    ) -> Result<Account, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         if public_key_bytes.len() != PUB_BYTE_LEN || secret_key_bytes.len() != SEC_BYTE_LEN {
             return Err("Invalid key length".into());
         }
 
         let public_key = PublicKey::from_bytes(public_key_bytes)?;
         let secret_key = SecretKey::from_bytes(secret_key_bytes)?;
-        Ok(Account {
+        Ok(Self {
             public_key,
             secret_key: Some(secret_key),
         })
@@ -103,11 +103,11 @@ impl Account {
     pub fn from_readable(
         public_key_s: &str,
         secret_key_s: &str,
-    ) -> Result<Account, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let pk_bytes = bs58::decode(public_key_s).into_vec()?;
         let sk_bytes = hex::decode(secret_key_s)?;
 
-        Account::from_bytes(&pk_bytes, &sk_bytes)
+        Self::from_bytes(&pk_bytes, &sk_bytes)
     }
 
     pub fn to_bytes(
@@ -139,10 +139,10 @@ impl Account {
 pub fn address_to_bytes(
     address: &str,
 ) -> Result<PublicKeyBytes, Box<dyn std::error::Error + Send + Sync>> {
-    let bytes = if address == NATIVE_TOKEN {
-        let mut native_bytes = NATIVE_TOKEN.as_bytes().to_vec();
-        native_bytes.truncate(PUB_BYTE_LEN);
-        native_bytes
+    let bytes = if StandardToken::is_standard_token(&address) {
+        let mut standard_bytes = address.as_bytes().to_vec();
+        standard_bytes.truncate(PUB_BYTE_LEN);
+        standard_bytes
     } else {
         bs58::decode(address).into_vec()?
     };
@@ -175,6 +175,8 @@ pub fn slice_to_array_96<T>(
 
 #[cfg(test)]
 mod tests {
+    use cesium_standards::NATIVE_TOKEN;
+
     use super::*;
 
     #[test]

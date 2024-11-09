@@ -8,6 +8,7 @@ members = [
   "crates/cesium-nebula",
   "crates/cesium-consensus",
   "crates/cesium-sdk",
+  "crates/cesium-standards",
   "crates/selenide-sdk",
   "crates/selenide-sdk-macros",
   "crates/selenide-runtime",
@@ -64,6 +65,7 @@ cesium-runtime = { path = "crates/cesium-runtime" }
 cesium-nucleus = { path = "crates/cesium-nucleus" }
 cesium-nebula = { path = "crates/cesium-nebula" }
 cesium-consensus = { path = "crates/cesium-consensus" }
+cesium-standards = { path = "crates/cesium-standards" }
 selenide-sdk = { path = "crates/selenide-sdk" }
 selenide-sdk-macros = { path = "crates/selenide-sdk-macros" }
 selenide-runtime = { path = "crates/selenide-runtime" }

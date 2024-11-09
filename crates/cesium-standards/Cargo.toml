@@ -1,11 +1,9 @@
 [package]
-name = "cesium-nebula"
+name = "cesium-standards"
 edition = "2021"
 version.workspace = true
 license = "GPL-3.0"
 publish = false
 
 [dependencies]
-cesium-crypto.workspace = true
-selenide-runtime.workspace = true
 once_cell.workspace = true

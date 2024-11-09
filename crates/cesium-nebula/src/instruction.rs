@@ -8,9 +8,6 @@ pub enum InstructionType {
     CurrencyCreate,
     CurrencyMint, // Only works if caller is the currency mint_authority
     CurrencyUpdate,
-    CurrencyEnableStaking,
-    CurrencyStake,
-    CurrencyUnstake,
     // NFTs
     NFTBundleCreate,
     NFTBundleUpdate,
@@ -27,13 +24,10 @@ impl InstructionType {
             3 => Some(InstructionType::CurrencyCreate),
             4 => Some(InstructionType::CurrencyMint),
             5 => Some(InstructionType::CurrencyUpdate),
-            6 => Some(InstructionType::CurrencyEnableStaking),
-            7 => Some(InstructionType::CurrencyStake),
-            8 => Some(InstructionType::CurrencyUnstake),
-            9 => Some(InstructionType::NFTBundleCreate),
-            10 => Some(InstructionType::NFTBundleUpdate),
-            11 => Some(InstructionType::NFTMint),
-            12 => Some(InstructionType::NFTTransfer),
+            6 => Some(InstructionType::NFTBundleCreate),
+            7 => Some(InstructionType::NFTBundleUpdate),
+            8 => Some(InstructionType::NFTMint),
+            9 => Some(InstructionType::NFTTransfer),
             _ => None,
         }
     }
@@ -46,13 +40,10 @@ impl InstructionType {
             InstructionType::CurrencyCreate => 3,
             InstructionType::CurrencyMint => 4,
             InstructionType::CurrencyUpdate => 5,
-            InstructionType::CurrencyEnableStaking => 6,
-            InstructionType::CurrencyStake => 7,
-            InstructionType::CurrencyUnstake => 8,
-            InstructionType::NFTBundleCreate => 9,
-            InstructionType::NFTBundleUpdate => 10,
-            InstructionType::NFTMint => 11,
-            InstructionType::NFTTransfer => 12,
+            InstructionType::NFTBundleCreate => 6,
+            InstructionType::NFTBundleUpdate => 7,
+            InstructionType::NFTMint => 8,
+            InstructionType::NFTTransfer => 9,
         }
     }
 }

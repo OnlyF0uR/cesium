@@ -320,6 +320,7 @@ name = "cesium-crypto"
 version = "0.2.0"
 dependencies = [
  "bs58",
+ "cesium-standards",
  "hex",
  "pqcrypto-sphincsplus",
  "pqcrypto-traits",
@@ -333,6 +334,7 @@ name = "cesium-nebula"
 version = "0.2.0"
 dependencies = [
  "cesium-crypto",
+ "once_cell",
  "selenide-runtime",
 ]
 
@@ -351,6 +353,13 @@ name = "cesium-sdk"
 version = "0.2.0"
 dependencies = [
  "cesium-nucleus",
+]
+
+[[package]]
+name = "cesium-standards"
+version = "0.2.0"
+dependencies = [
+ "once_cell",
 ]
 
 [[package]]
