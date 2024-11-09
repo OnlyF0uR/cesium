@@ -1,15 +1,23 @@
-\documentclass[12px, letterpaper]{article}
-\usepackage{hyperref, lipsum}
+%!TEX program = lualatex
+\documentclass[letterpaper, 12pt]{article}
+\usepackage[base]{babel}
+\usepackage{hyperref, lipsum, fontspec, amsmath, geometry}
 \hypersetup{
   colorlinks   = true, %Colour links instead of ugly boxes
-  urlcolor     = blue, %Colour for external hyperlinks
-  linkcolor    = blue, %Colour of internal links
-  citecolor    = red   %Colour of citations
+  urlcolor     = darkblue, %Colour for external hyperlinks
+  linkcolor    = darkblue, %Colour of internal links
+  citecolor    = darkred   %Colour of citations
 }
+
+\setmainfont{Courier New}
+
+\geometry{margin=1in}
+\raggedright
+\sloppy
 
 \title{Cesium: A Post-Modern Decentralized Transactional Communication Platform}
 \author{\normalsize Author: OnlyF0uR\\\normalsize}
-\date {\color{black} October 27, 2024}
+\date {\color{black} November 9, 2024}
 
 \begin{document}
 \maketitle
@@ -22,57 +30,78 @@
 % =============================
 \section{Introduction}
 
-\lipsum[1-2]
+\lipsum[1]
 
 % =============================
 \section{History}
 
-\lipsum[1-4]
+\lipsum[1-2]
 
 % =============================
 \section{Areas of Concern}
     
-\lipsum[1-2]
+\lipsum[1-3]
 
 % =============================
 \section{Post Quantum Cryptography}
 
-\lipsum[1-4] 
+\lipsum[1] 
     
 % =============================
-\section{Directed Acyclic Graph}
+\section{Nucleus}
 
-\lipsum[1]
+The first and foremost structure within the Cesium Protocol is the nucleus. The nucleus is fundamental to the processing of transactions. It is somewhat analogous to the \textit{mempool} for other blockchains and operates independently for every single validator node of the network. The nucleus is only exposed to the \textit{inter-validator-communications} protocol for the purpose of establishing consensus regarding the contents of its in-storage transactions.
+
+\subsection{Structure}
+
+The nucleus uses a minimalized directed acyclic graph (DAG) to store and validate incoming transactions. This in-memory storage serves as the playground for transaction validation and pre-validated required processes.
+
+\subsection{Validation}
+
+\subsubsection{Inclusion}
+
+A typical DAG structure will, upon the addition of a new item or node, validate the transactions referenced in the new transaction. A similar approach is implemented for the Cesium Protocol. Transactions submitted are briefly validated upon being submitted. When the transaction is found to be logically correct, it is added to the DAG. But before it is added, it is wrapped in a node structure, and references to prior transactions are determined. Typically, transactions in the DAG with the least amount of references and with the highest priority fee are more likely to get referenced, thus speeding up the time it takes for those transactions to be considered valid and finalized. A reference to a transaction only counts if it is referenced by a transaction that is itself referenced by at least one new transaction. In this paper, these references are referred to as pre-liminary valid references or \textbf{pvf} for short.
+
+\subsubsection{Packing}
+
+Upon receiving 5 \textbf{pvf}’s, a transaction is marked for inclusion in a checkpoint. This would be analogous to marking it as \textit{clothos}. Checkpoints are created during the packing process and are referred to as a pack \textbf{p}. Packs are quintessentially bundles of transactions that are more likely to be valid than not. Packs are created and proposed by a selected leader, through proof-of-stake, which is explained more later in this document. All other participants of the network will subsequently assess the validity of \textbf{p}. \textbf{p} is considered valid if $\frac{N_v}{\frac{2}{3} + 1}$ of network participants deemed \textbf{p} to be truthful, $\mathbf{N_v}$ being the total amount of validators (participants) in the network. If this is the case, then \textbf{p} is recorded into the ledger, and all transactions are considered final and immutable.
+
+\subsubsection{Aftermath}
+
+After the \textbf{p} has been solidified into the ledger, each item of \textbf{p} is removed from the in-memory graph in a process referred to as pruning. Because the network agreed upon the validity of \textbf{p}, all the transactions inside it are final and can be removed from the DAG. This way, the in-memory storage steers clear of an abundance of transactions and redundancy, especially considering \(n\) of \textbf{p} is mathematically related to the processing demand placed on the network. The leader is also rewarded the gas and priority fees of all transactions in \textbf{p}, which is immediately added to the DAG to be included in $\mathbf{p+i}$.
 
 % =============================
-\section{Consensus Protocol}
+\section{Nebula}
 
-\lipsum[1-6] 
+Nebula is an abstraction layer on top of transaction data. It serves as a hub of creation for new transactions and their instructions. It governs the contents and standards for information submitted to the Nucleus.
+
+\subsection{Transactions}
+
+Transactions \textbf{tx} are the only way of communicating with the network. Every piece of information is conveyed in a transaction. Transactions created through the Nebula are logically valid, yet can be either sound or unsound. Since soundness is evaluated within the Nucleus, the Nebula takes care of the logical validity of transactions. In essence, this means that the content of transactions is valid and within expected parameters.
+Transactions encompass information regarding the specific operations \textbf{o} that need to be executed. These operations are referred to as instructions and are present in every single transaction. More information on instructions follows. Alongside the instructions, a transaction also includes the reserved gas fee, a potential priority fee, and cryptographical digest (when signed). Upon instantiation, using the official Rust implementation, a transaction is established with no instructions and no digest. They are added procedurally by calling the appropriate methods. Yet, only when the amount of instructions is greater than zero will we deem a transaction logically valid, provided that each of the instructions is logically valid as well.
+
+\subsection{Instructions}
+
+Instructions \textbf{i} contain the raw data for the operations they execute. They are also marked with a type-stamp for interpretability. Valid instruction types are contract deploy, contract call, currency creation, currency transfer, and more. More information regarding the native currency system is addressed later in this paper. 
 
 % =============================
-\section{Transactional Capabilities}
+\section{Account Model}
 
-\lipsum[1-3]
+The way of storing data on the Cesium protocol is somewhat similar to how Solana handles their data, namely through the use of accounts. In this model, a distinction is made between primary accounts and data accounts (secondary).
 
-% =============================
-\section{Smart Contracts}
+\subsection{Primary Accounts}
 
 \lipsum[1-2]
 
-% =============================    
-\section{Conclusion}
+\subsection{Data Accounts}
 
 \lipsum[1-2]
-    
+
 % =============================
-\begin{thebibliography}{}
+% \begin{thebibliography}{}
 
-	% \bibitem{Item} Placeholder name. (n.d.). Retrieved Januari 1, 2000, from  \url{https://example.com/}
+% 	\bibitem{Item} Placeholder name. (n.d.). Retrieved January 1, 2000, from \url{https://example.com/}
 
-  %   \bibitem{Item} Placeholder name. (n.d.). Retrieved Januari 1, 2000, from  \url{https://example.com/}
-
-  %   \bibitem{Item} Placeholder name. (n.d.). Retrieved Januari 1, 2000, from  \url{https://example.com/}
-
-\end{thebibliography}
+% \end{thebibliography}
 
 \end{document}
