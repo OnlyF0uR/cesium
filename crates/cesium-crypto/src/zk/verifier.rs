@@ -51,4 +51,35 @@ impl VerifierProtocol {
             }
         }
     }
+
+    pub fn verify_non_interactive(
+        account: &Account,
+        commitment: &Commitment,
+        response: &Response,
+    ) -> Result<bool, ZkError> {
+        // Deterministically recreate the challenge from the commitment
+        let mut hasher = Shake256::default();
+        hasher.update(&commitment.0);
+
+        let mut challenge = vec![0u8; CHALLENGE_LENGTH];
+        let mut xof = hasher.finalize_xof();
+        let _ = xof.read(&mut challenge);
+
+        // Reconstruct the message that was signed
+        let mut message = Vec::new();
+        message.extend_from_slice(&commitment.0);
+        message.extend_from_slice(&challenge);
+
+        // Verify the response signature
+        match account.verify(&message, &response.0) {
+            Ok(b) => Ok(b),
+            Err(e) => {
+                if e.to_string().contains("verification failed") {
+                    Ok(false)
+                } else {
+                    Err(ZkError::VerificationError(e.to_string()))
+                }
+            }
+        }
+    }
 }

@@ -49,4 +49,41 @@ impl ProverProtocol {
 
         Ok(Response(signature))
     }
+
+    /// Generate commitment and response non-interactive
+    pub fn generate_non_interactive(
+        account: &Account,
+        secret: &[u8],
+    ) -> Result<(Commitment, Response), ZkError> {
+        let mut rng = OsRng;
+        let mut salt = vec![0u8; SALT_LENGTH];
+        rng.fill(&mut salt[..]);
+
+        let mut hasher = Shake256::default();
+        hasher.update(secret);
+        hasher.update(&salt);
+
+        let mut commitment = vec![0u8; CHALLENGE_LENGTH];
+        let mut xof = hasher.finalize_xof();
+        let _ = xof.read(&mut commitment);
+
+        // Use Fiat-Shamir transform to generate a challenge from commitment
+        let mut challenge_hasher = Shake256::default();
+        challenge_hasher.update(&commitment);
+
+        let mut challenge = vec![0u8; CHALLENGE_LENGTH];
+        let mut xof_challenge = challenge_hasher.finalize_xof();
+        let _ = xof_challenge.read(&mut challenge);
+
+        // Create a response by signing the commitment and challenge
+        let mut message = Vec::new();
+        message.extend_from_slice(&commitment);
+        message.extend_from_slice(&challenge);
+
+        let signature = account
+            .digest(&message)
+            .map_err(|e| ZkError::SigningError(e.to_string()))?;
+
+        Ok((Commitment(commitment), Response(signature)))
+    }
 }

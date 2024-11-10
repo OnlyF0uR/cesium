@@ -103,4 +103,49 @@ mod tests {
         // Commitments should be different due to random salt
         assert_ne!(commitment1.0, commitment2.0);
     }
+
+    #[test]
+    fn test_non_interactive() {
+        let account = Account::create();
+        let secret = b"my secret value";
+
+        let (commitment, response) =
+            ProverProtocol::generate_non_interactive(&account, secret).unwrap();
+
+        let valid =
+            VerifierProtocol::verify_non_interactive(&account, &commitment, &response).unwrap();
+        assert!(valid);
+    }
+
+    #[test]
+    fn test_non_interactive_wrong_account() {
+        let account = Account::create();
+        let wrong_account = Account::create();
+        let secret = b"my secret value";
+
+        let (commitment, response) =
+            ProverProtocol::generate_non_interactive(&account, secret).unwrap();
+
+        let valid =
+            VerifierProtocol::verify_non_interactive(&wrong_account, &commitment, &response)
+                .unwrap();
+
+        assert!(!valid);
+    }
+
+    #[test]
+    fn test_non_interactive_wrong_commitment() {
+        let account = Account::create();
+        let secret = b"my secret value";
+
+        let (_, response) = ProverProtocol::generate_non_interactive(&account, secret).unwrap();
+
+        let wrong_commitment = Commitment(vec![0; CHALLENGE_LENGTH]);
+
+        let valid =
+            VerifierProtocol::verify_non_interactive(&account, &wrong_commitment, &response)
+                .unwrap();
+
+        assert!(!valid);
+    }
 }
