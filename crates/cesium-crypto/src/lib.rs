@@ -1,3 +1,4 @@
+pub mod bulletproofs;
 pub mod id;
 pub mod keys;
 pub mod serializer;
