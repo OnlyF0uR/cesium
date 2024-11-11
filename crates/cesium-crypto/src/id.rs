@@ -22,6 +22,11 @@ pub fn generate_id() -> Vec<u8> {
     result
 }
 
+pub fn generate_id_slice() -> [u8; PUB_BYTE_LEN] {
+    let id = generate_id();
+    id.try_into().unwrap()
+}
+
 pub fn generate_id_from_data(data: &[u8]) -> String {
     let mut hasher = sha3::Sha3_384::new();
     hasher.update(data);

@@ -5,11 +5,8 @@ version.workspace = true
 license = "GPL-3.0"
 publish = false
 
-
 [dependencies]
 cesium-crypto.workspace = true
 rocksdb.workspace = true
-# tokio.workspace = true
-bincode.workspace = true
-serde.workspace = true
-tempfile.workspace = true
+tokio.workspace = true
+once_cell.workspace = true
