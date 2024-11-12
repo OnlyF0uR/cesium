@@ -27,11 +27,11 @@ jobs:
       - name: Add WASM target
         run: rustup target add wasm32-unknown-unknown
 
-      - name: Setup Emscripten
-        uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: latest
-          actions-cache-folder: "emsdk-cache"
+      # - name: Setup Emscripten
+      #   uses: mymindstorm/setup-emsdk@v14
+      #   with:
+      #     version: latest
+      #     actions-cache-folder: "emsdk-cache"
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -54,6 +54,4 @@ jobs:
         run: make
 
       - name: Run tests
-        env:
-          LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}:$HOME/.wasmedge/lib
         run: make test
