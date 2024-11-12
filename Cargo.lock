@@ -321,6 +321,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cesium-horizon"
+version = "0.2.0"
+dependencies = [
+ "cesium-crypto",
+ "tokio",
+]
+
+[[package]]
 name = "cesium-nebula"
 version = "0.2.0"
 dependencies = [
