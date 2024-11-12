@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_broadcast() {
+    async fn test_broadcast_invalid_host() {
         let mut network = HorizonNetwork::new(3, "224.0.0.5", 12345);
         network.add_node("node1".to_string(), 0).await;
         network.add_node("node2".to_string(), 0).await;

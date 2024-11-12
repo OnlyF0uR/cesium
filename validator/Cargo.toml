@@ -7,3 +7,5 @@ publish = false
 
 
 [dependencies]
+dirs.workspace = true
+cesium-crypto.workspace = true

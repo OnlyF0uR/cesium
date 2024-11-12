@@ -65,6 +65,15 @@ macro_rules! ensure_secret_key {
 }
 
 impl Account {
+    pub fn from(pubkey: &[u8], secret_key: &[u8]) -> Result<Self, AccountError> {
+        Ok(Self {
+            public_key: PublicKey::from_bytes(pubkey).map_err(AccountError::PubkeyParseError)?,
+            secret_key: Some(
+                SecretKey::from_bytes(secret_key).map_err(AccountError::SecretKeyParseError)?,
+            ),
+        })
+    }
+
     pub fn readonly_from_pub(public_key: PublicKey) -> Self {
         Self {
             public_key,
