@@ -14,6 +14,7 @@ ifeq ($(OS),Windows_NT)
 	@echo "Compiling example-c on Windows is currently not supported"
 else
 	$(MAKE) -C contracts/example-c
+endif
 test:
 	cargo test --exclude selenide-sdk --exclude state --exclude state-sdk --workspace
 # Build both

@@ -85,7 +85,7 @@ mod tests {
         let store = RocksDBStore::instance();
         let account = Account::create();
 
-        let key = account.to_public_key_bytes();
+        let key = account.to_public_key_bytes().unwrap();
         let value = "hello world".as_bytes();
 
         store.put(key, value).unwrap();
@@ -99,7 +99,7 @@ mod tests {
         let store = RocksDBStore::instance();
         let account = Account::create();
 
-        let key = account.to_public_key_bytes();
+        let key = account.to_public_key_bytes().unwrap();
         let value = "hello world".as_bytes();
 
         store.async_put(key.to_vec(), value.to_vec()).await.unwrap();

@@ -11,6 +11,45 @@ pub const SIG_BYTE_LEN: usize = 16224; // 35664 (192f), 16224 (192s)
 pub type PublicKeyBytes = [u8; PUB_BYTE_LEN];
 pub type SecretKeyBytes = [u8; SEC_BYTE_LEN];
 
+#[derive(Debug)]
+pub enum AccountError {
+    InvalidSecretKey,
+    InvalidSignature,
+    BaseEncodeError(bs58::encode::Error),
+    BaseDecodeError(bs58::decode::Error),
+    HexDecodeError(hex::FromHexError),
+    InvalidPublicKey,
+    PubkeyParseError(pqcrypto_traits::Error),
+    SecretKeyParseError(pqcrypto_traits::Error),
+    SignatureParseError(pqcrypto_traits::Error),
+    UnknownVerificationError,
+    MissingSecretKey,
+    InvalidKeypair,
+    InvalidSliceLength,
+}
+
+impl std::fmt::Display for AccountError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AccountError::InvalidSecretKey => write!(f, "Invalid secret key"),
+            AccountError::InvalidSignature => write!(f, "Invalid signature"),
+            AccountError::BaseEncodeError(e) => write!(f, "Base encoding error: {}", e),
+            AccountError::BaseDecodeError(e) => write!(f, "Base decoding error: {}", e),
+            AccountError::HexDecodeError(e) => write!(f, "Hex decoding error: {}", e),
+            AccountError::InvalidPublicKey => write!(f, "Invalid public key"),
+            AccountError::PubkeyParseError(e) => write!(f, "Public key parse error: {}", e),
+            AccountError::SecretKeyParseError(e) => write!(f, "Secret key parse error: {}", e),
+            AccountError::SignatureParseError(e) => write!(f, "Signature parse error: {}", e),
+            AccountError::UnknownVerificationError => write!(f, "Unknown verification error"),
+            AccountError::MissingSecretKey => write!(f, "Secret key is missing"),
+            AccountError::InvalidKeypair => write!(f, "Invalid keypair"),
+            AccountError::InvalidSliceLength => write!(f, "Invalid slice length"),
+        }
+    }
+}
+
+impl std::error::Error for AccountError {}
+
 pub struct Account {
     public_key: PublicKey,
     secret_key: Option<SecretKey>,
@@ -20,7 +59,7 @@ macro_rules! ensure_secret_key {
     ($self:expr) => {
         match $self.secret_key.as_ref() {
             Some(sk) => sk,
-            None => return Err("Secret key is missing".into()),
+            None => return Err(AccountError::MissingSecretKey),
         }
     };
 }
@@ -33,14 +72,15 @@ impl Account {
         }
     }
 
-    pub fn readonly_from_readable_pub(
-        public_key_s: &str,
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let pk_bytes = bs58::decode(public_key_s).into_vec()?;
+    pub fn readonly_from_readable_pub(public_key_s: &str) -> Result<Self, AccountError> {
+        let pk_bytes = bs58::decode(public_key_s)
+            .into_vec()
+            .map_err(AccountError::BaseDecodeError)?;
         if pk_bytes.len() != PUB_BYTE_LEN {
-            return Err("Invalid public key length".into());
+            return Err(AccountError::InvalidPublicKey);
         }
-        let public_key = PublicKey::from_bytes(&pk_bytes)?;
+        let public_key =
+            PublicKey::from_bytes(&pk_bytes).map_err(AccountError::PubkeyParseError)?;
         Ok(Self::readonly_from_pub(public_key))
     }
 
@@ -52,31 +92,35 @@ impl Account {
         }
     }
 
-    pub fn digest(
-        &self,
-        message: &[u8],
-    ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn digest(&self, message: &[u8]) -> Result<Vec<u8>, AccountError> {
         let sk = ensure_secret_key!(self);
         let sm = pqcrypto_sphincsplus::sphincsshake192ssimple_sign(message, sk);
         Ok(sm.as_bytes().to_vec())
     }
 
-    pub fn verify(
-        &self,
-        message: &[u8],
-        signature: &[u8],
-    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn verify(&self, message: &[u8], signature: &[u8]) -> Result<bool, AccountError> {
         if signature.len() < message.len() + SIG_BYTE_LEN {
-            return Err("Invalid signature length".into());
+            return Err(AccountError::InvalidSignature);
         }
 
-        let sm = PqSignedMessage::from_bytes(signature)?;
-        let verified_message =
-            pqcrypto_sphincsplus::sphincsshake192ssimple_open(&sm, &self.public_key)?;
-        Ok(verified_message == message)
+        let sm =
+            PqSignedMessage::from_bytes(signature).map_err(AccountError::SignatureParseError)?;
+
+        let verif_result = pqcrypto_sphincsplus::sphincsshake192ssimple_open(&sm, &self.public_key);
+        if let Err(e) = verif_result {
+            if e.to_string().contains("verification failed") {
+                // error: verification failed
+                return Ok(false);
+            } else {
+                // unknown error
+                return Err(AccountError::UnknownVerificationError);
+            }
+        }
+
+        Ok(verif_result.unwrap() == message)
     }
 
-    pub fn secret_key(&self) -> Result<&SecretKey, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn secret_key(&self) -> Result<&SecretKey, AccountError> {
         Ok(ensure_secret_key!(self))
     }
 
@@ -87,48 +131,44 @@ impl Account {
     pub fn from_bytes(
         public_key_bytes: &[u8],
         secret_key_bytes: &[u8],
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Self, AccountError> {
         if public_key_bytes.len() != PUB_BYTE_LEN || secret_key_bytes.len() != SEC_BYTE_LEN {
-            return Err("Invalid key length".into());
+            return Err(AccountError::InvalidKeypair);
         }
 
-        let public_key = PublicKey::from_bytes(public_key_bytes)?;
-        let secret_key = SecretKey::from_bytes(secret_key_bytes)?;
+        let public_key =
+            PublicKey::from_bytes(public_key_bytes).map_err(AccountError::PubkeyParseError)?;
+        let secret_key =
+            SecretKey::from_bytes(secret_key_bytes).map_err(AccountError::SecretKeyParseError)?;
         Ok(Self {
             public_key,
             secret_key: Some(secret_key),
         })
     }
 
-    pub fn from_readable(
-        public_key_s: &str,
-        secret_key_s: &str,
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let pk_bytes = bs58::decode(public_key_s).into_vec()?;
-        let sk_bytes = hex::decode(secret_key_s)?;
+    pub fn from_readable(public_key_s: &str, secret_key_s: &str) -> Result<Self, AccountError> {
+        let pk_bytes = bs58::decode(public_key_s)
+            .into_vec()
+            .map_err(AccountError::BaseDecodeError)?;
+        let sk_bytes = hex::decode(secret_key_s).map_err(AccountError::HexDecodeError)?;
 
         Self::from_bytes(&pk_bytes, &sk_bytes)
     }
 
-    pub fn to_bytes(
-        &self,
-    ) -> Result<(&PublicKeyBytes, &SecretKeyBytes), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn to_bytes(&self) -> Result<(&PublicKeyBytes, &SecretKeyBytes), AccountError> {
         let pk = slice_to_array_48(self.public_key.as_bytes())?;
         let sk = slice_to_array_96(ensure_secret_key!(self).as_bytes())?;
         Ok((pk, sk))
     }
 
-    pub fn to_readable(
-        &self,
-    ) -> Result<(String, String), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn to_readable(&self) -> Result<(String, String), AccountError> {
         let pk_s = bs58::encode(self.public_key.as_bytes()).into_string();
         let sk_s = hex::encode(ensure_secret_key!(self).as_bytes());
         Ok((pk_s, sk_s))
     }
 
-    pub fn to_public_key_bytes(&self) -> &PublicKeyBytes {
+    pub fn to_public_key_bytes(&self) -> Result<&PublicKeyBytes, AccountError> {
         slice_to_array_48(self.public_key.as_bytes())
-            .expect("Invalid public key length; expected 48 bytes")
     }
 
     pub fn to_public_key_readable(&self) -> String {
@@ -136,15 +176,15 @@ impl Account {
     }
 }
 
-pub fn address_to_bytes(
-    address: &str,
-) -> Result<PublicKeyBytes, Box<dyn std::error::Error + Send + Sync>> {
+pub fn address_to_bytes(address: &str) -> Result<PublicKeyBytes, AccountError> {
     let bytes = if StandardToken::is_standard_token(&address) {
         let mut standard_bytes = address.as_bytes().to_vec();
         standard_bytes.truncate(PUB_BYTE_LEN);
         standard_bytes
     } else {
-        bs58::decode(address).into_vec()?
+        bs58::decode(address)
+            .into_vec()
+            .map_err(AccountError::BaseDecodeError)?
     };
     slice_to_array_48(&bytes).map(|arr| *arr)
 }
@@ -153,23 +193,19 @@ pub fn sig_byte_len(msg_len: usize) -> usize {
     SIG_BYTE_LEN + msg_len
 }
 
-pub fn slice_to_array_48<T>(
-    slice: &[T],
-) -> Result<&[T; 48], Box<dyn std::error::Error + Send + Sync>> {
+pub fn slice_to_array_48<T>(slice: &[T]) -> Result<&[T; 48], AccountError> {
     if slice.len() == 48 {
         Ok(unsafe { &*(slice.as_ptr() as *const [T; 48]) })
     } else {
-        Err("Invalid slice length".into())
+        Err(AccountError::InvalidSliceLength)
     }
 }
 
-pub fn slice_to_array_96<T>(
-    slice: &[T],
-) -> Result<&[T; 96], Box<dyn std::error::Error + Send + Sync>> {
+pub fn slice_to_array_96<T>(slice: &[T]) -> Result<&[T; 96], AccountError> {
     if slice.len() == 96 {
         Ok(unsafe { &*(slice.as_ptr() as *const [T; 96]) })
     } else {
-        Err("Invalid slice length".into())
+        Err(AccountError::InvalidSliceLength)
     }
 }
 
@@ -184,7 +220,10 @@ mod tests {
         let kp = Account::create();
         let (pk, sk) = kp.to_bytes().unwrap();
         let kp2 = Account::from_bytes(pk, sk).unwrap();
-        assert_eq!(kp.to_public_key_bytes(), kp2.to_public_key_bytes());
+
+        let kp1_pk = kp.to_public_key_bytes().unwrap();
+        let kp2_pk = kp2.to_public_key_bytes().unwrap();
+        assert_eq!(kp1_pk, kp2_pk);
         assert_eq!(kp.to_public_key_readable(), kp2.to_public_key_readable());
     }
 
@@ -194,7 +233,9 @@ mod tests {
         let (pk_s, sk_s) = kp.to_readable().unwrap();
         let kp2 = Account::from_readable(&pk_s, &sk_s).unwrap();
 
-        assert_eq!(kp.to_public_key_bytes(), kp2.to_public_key_bytes());
+        let kp1_pk = kp.to_public_key_bytes().unwrap();
+        let kp2_pk = kp2.to_public_key_bytes().unwrap();
+        assert_eq!(kp1_pk, kp2_pk);
         assert_eq!(kp.to_public_key_readable(), kp2.to_public_key_readable());
     }
 
@@ -202,7 +243,7 @@ mod tests {
     fn test_account_public_key() {
         let kp = Account::create();
 
-        let pk = kp.to_public_key_bytes();
+        let pk = kp.to_public_key_bytes().unwrap();
         let pk2 = PublicKey::from_bytes(pk).unwrap();
         assert_eq!(kp.public_key.as_bytes(), pk2.as_bytes());
     }

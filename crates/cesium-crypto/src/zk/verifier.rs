@@ -40,15 +40,7 @@ impl VerifierProtocol {
         // Convert response back to DetachedSignature
         match account.verify(&message, &response.0) {
             Ok(b) => Ok(b),
-            Err(e) => {
-                // TODO: This will chance when proper error handling for
-                // the rest of the crypto library is implemented
-                if e.to_string().contains("verification failed") {
-                    return Ok(false);
-                } else {
-                    return Err(ZkError::VerificationError(e.to_string()));
-                }
-            }
+            Err(e) => Err(ZkError::AccountError(e)),
         }
     }
 
@@ -73,13 +65,7 @@ impl VerifierProtocol {
         // Verify the response signature
         match account.verify(&message, &response.0) {
             Ok(b) => Ok(b),
-            Err(e) => {
-                if e.to_string().contains("verification failed") {
-                    Ok(false)
-                } else {
-                    Err(ZkError::VerificationError(e.to_string()))
-                }
-            }
+            Err(e) => Err(ZkError::AccountError(e)),
         }
     }
 }

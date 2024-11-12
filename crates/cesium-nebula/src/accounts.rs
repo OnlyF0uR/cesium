@@ -487,8 +487,8 @@ mod tests {
     #[test]
     fn test_data_account() {
         let id = generate_id_slice();
-        let owner = *Account::create().to_public_key_bytes();
-        let updater = *Account::create().to_public_key_bytes();
+        let owner = *(Account::create().to_public_key_bytes().unwrap());
+        let updater = *(Account::create().to_public_key_bytes().unwrap());
         let data = vec![1, 2, 3, 4];
         let data_account = DataAccount::new(id, owner, updater, data.clone());
         assert_eq!(data_account.address(), to_readable_id(&id));
@@ -509,7 +509,7 @@ mod tests {
     #[test]
     fn test_currency_account() {
         let id = generate_id_slice();
-        let owner = *Account::create().to_public_key_bytes();
+        let owner = *(Account::create().to_public_key_bytes().unwrap());
         let short_name = "ABC".to_string();
         let long_name = "Alpha Beta Charlie".to_string();
         let decimals = 2;
@@ -555,8 +555,8 @@ mod tests {
     async fn test_storage_user_account() {
         let account = Account::create();
 
-        let id = account.to_public_key_bytes();
-        let data_account_ids = Rc::new(vec![*Account::create().to_public_key_bytes()]);
+        let id = account.to_public_key_bytes().unwrap();
+        let data_account_ids = Rc::new(vec![*(Account::create().to_public_key_bytes()).unwrap()]);
         let user_account = UserAccount::new(*id, data_account_ids.clone());
 
         user_account.write().await.unwrap();
