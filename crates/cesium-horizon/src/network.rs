@@ -256,6 +256,10 @@ mod tests {
         assert!(result.is_err());
 
         let err = result.err().unwrap();
-        assert_eq!(err.to_string(), "No such host is known. (os error 11001)");
+        assert!(
+            err.to_string() == "No such host is known. (os error 11001)"
+                || err.to_string()
+                    == "failed to lookup address information: Temporary failure in name resolution"
+        );
     }
 }
