@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    net::Ipv4Addr,
+    net::{Ipv4Addr, SocketAddr},
     str::FromStr,
     sync::Arc,
     time::Duration,
@@ -21,15 +21,17 @@ pub struct HorizonNetwork {
     layers: Vec<Vec<String>>,
     fanout: usize,
     multicast_addr: String,
+    multicast_port: u16,
 }
 
 impl HorizonNetwork {
-    pub fn new(fanout: usize, mc_addr: &str) -> Self {
+    pub fn new(fanout: usize, mc_addr: &str, mc_port: u16) -> Self {
         HorizonNetwork {
             nodes: HashMap::new(),
             layers: Vec::new(),
             fanout,
             multicast_addr: mc_addr.to_string(),
+            multicast_port: mc_port,
         }
     }
 
@@ -108,12 +110,11 @@ impl HorizonNetwork {
         if let Some(first_layer) = self.layers.first() {
             for node_id in first_layer {
                 if let Some(node) = self.nodes.get(node_id) {
+                    let full_addr = format!("{}:{}", self.multicast_addr, self.multicast_port);
+                    let socket_addr = SocketAddr::from_str(&full_addr).unwrap();
+
                     // UDP multicast attempt
-                    if let Err(e) = node
-                        .udp_socket
-                        .send_to(&packet.data, &self.multicast_addr)
-                        .await
-                    {
+                    if let Err(e) = node.udp_socket.send_to(&packet.data, socket_addr).await {
                         eprintln!("UDP multicast error: {}", e);
                     }
 
@@ -122,9 +123,7 @@ impl HorizonNetwork {
                         let con = node.tcp_connections.get(neightbour_ip);
                         if con.is_none() {
                             let tcp_stream =
-                                TcpStream::connect(format!("{}:{}", neightbour_ip, 12345))
-                                    .await
-                                    .unwrap();
+                                TcpStream::connect(format!("{}:{}", neightbour_ip, 12345)).await?;
                             node.tcp_connections
                                 .insert(neightbour_ip.clone(), tcp_stream);
                         }
@@ -197,5 +196,66 @@ impl HorizonNetwork {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+    use tokio::time::timeout;
+
+    #[tokio::test]
+    async fn test_add_node() {
+        let mut network = HorizonNetwork::new(3, "224.0.0.5", 12345);
+        network.add_node("node1".to_string(), 0).await;
+        assert!(network.nodes.contains_key("node1"));
+        assert_eq!(network.layers[0][0], "node1");
+    }
+
+    #[tokio::test]
+    async fn test_rebuild_neighborhoods() {
+        let mut network = HorizonNetwork::new(3, "224.0.0.5", 12345);
+        network.add_node("node1".to_string(), 0).await;
+        network.add_node("node2".to_string(), 0).await;
+        network.add_node("node3".to_string(), 1).await;
+        network.add_node("node4".to_string(), 1).await;
+        network.add_node("node5".to_string(), 1).await;
+
+        network.rebuild_neighborhoods().await;
+
+        assert_eq!(network.layers[0].len(), 2);
+        assert_eq!(network.layers[1].len(), 3);
+
+        if let Some(node1) = network.nodes.get("node1") {
+            assert_eq!(node1.neighbors_ips.lock().await.len(), 3);
+        } else {
+            panic!("node1 not found");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_broadcast() {
+        let mut network = HorizonNetwork::new(3, "224.0.0.5", 12345);
+        network.add_node("node1".to_string(), 0).await;
+        network.add_node("node2".to_string(), 0).await;
+        network.add_node("node3".to_string(), 1).await;
+
+        // This should fail due to unknown host within 3 seconds,
+        // but just in case, we'll set a 3 second timeout
+        let result = timeout(
+            Duration::from_secs(3),
+            network.broadcast("node1".to_string(), vec![1, 2, 3]),
+        )
+        .await;
+        assert!(result.is_ok());
+
+        let result = result.unwrap();
+
+        // let result = network.broadcast("node1".to_string(), vec![1, 2, 3]).await;
+        assert!(result.is_err());
+
+        let err = result.err().unwrap();
+        assert_eq!(err.to_string(), "No such host is known. (os error 11001)");
     }
 }
