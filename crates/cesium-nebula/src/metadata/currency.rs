@@ -34,3 +34,21 @@ impl CurrencyAmountMetadata {
         bytes
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_currency_amount_metadata() {
+        let currency = PublicKeyBytes::from([0u8; PUB_BYTE_LEN]);
+        let amount = 1000;
+        let metadata = CurrencyAmountMetadata { currency, amount };
+
+        let bytes = metadata.to_bytes();
+        let metadata2 = CurrencyAmountMetadata::try_from_bytes(&bytes).unwrap();
+
+        assert_eq!(metadata.currency, metadata2.currency);
+        assert_eq!(metadata.amount, metadata2.amount);
+    }
+}

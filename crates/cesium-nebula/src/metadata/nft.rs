@@ -73,3 +73,35 @@ impl NFTMetadata {
         bytes
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nft_metadata() {
+        let name = "Test NFT".to_string();
+        let uri = "https://127.0.0.1".to_string();
+        let creator_count = 2;
+        let creators = vec![
+            PublicKeyBytes::from([0u8; PUB_BYTE_LEN]),
+            PublicKeyBytes::from([1u8; PUB_BYTE_LEN]),
+        ];
+        let metadata = NFTMetadata {
+            name_len: name.len() as u32,
+            name,
+            url_len: uri.len() as u32,
+            uri,
+            creator_count,
+            creators,
+        };
+
+        let bytes = metadata.to_bytes();
+        let metadata2 = NFTMetadata::try_from_bytes(&bytes).unwrap();
+
+        assert_eq!(metadata.name, metadata2.name);
+        assert_eq!(metadata.uri, metadata2.uri);
+        assert_eq!(metadata.creator_count, metadata2.creator_count);
+        assert_eq!(metadata.creators, metadata2.creators);
+    }
+}

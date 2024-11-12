@@ -146,9 +146,20 @@ impl ContractAccount {
         self.state_account_id.as_ref()
     }
 
-    pub fn execute(&self, _data: &[u8]) -> Result<(), RuntimeError> {
-        println!("Executing contract with id: {}", to_readable_id(&self.id));
-        println!("Binary: {:?}", self.program_binary);
+    pub fn initialize(&self, _params: &[u8]) -> Result<(), RuntimeError> {
+        // TODO: Initialize the contract
+        todo!()
+    }
+
+    pub fn execute(
+        &self,
+        _func_name: &str,
+        _metering_points: u64,
+        _caller: PublicKeyBytes,
+        _params: &[u8],
+    ) -> Result<(), RuntimeError> {
+        // TODO: Get state of current contract
+        // TODO: Execute the function contract
         todo!()
     }
 

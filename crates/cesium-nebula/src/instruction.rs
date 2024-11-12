@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum InstructionType {
     // Smart contracts
     ContractCall,
@@ -85,5 +85,21 @@ impl Instruction {
             instruction_type,
             data,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_instruction() {
+        let instruction = Instruction::new(InstructionType::CurrencyTransfer, vec![1, 2, 3]);
+
+        let bytes = instruction.to_bytes();
+        let instruction2 = Instruction::from_bytes(&bytes).unwrap();
+
+        assert_eq!(instruction.instruction_type, instruction2.instruction_type);
+        assert_eq!(instruction.data, instruction2.data);
     }
 }
