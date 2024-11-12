@@ -48,7 +48,7 @@ impl InstructionType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Instruction {
     pub instruction_type: InstructionType,
     pub data: Vec<u8>,
@@ -72,7 +72,7 @@ impl Instruction {
 
     pub fn from_bytes(
         bytes: &[u8],
-    ) -> Result<Instruction, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<(Instruction, usize), Box<dyn std::error::Error + Send + Sync>> {
         if bytes.len() < 1 {
             return Err("Instruction is empty".into());
         }
@@ -81,10 +81,14 @@ impl Instruction {
             InstructionType::from_u8(bytes[0]).ok_or("Invalid instruction type")?;
         let data = bytes[1..].to_vec();
 
-        Ok(Instruction {
-            instruction_type,
-            data,
-        })
+        let amount_read = 1 + data.len();
+        Ok((
+            Instruction {
+                instruction_type,
+                data,
+            },
+            amount_read,
+        ))
     }
 }
 
@@ -97,7 +101,7 @@ mod tests {
         let instruction = Instruction::new(InstructionType::CurrencyTransfer, vec![1, 2, 3]);
 
         let bytes = instruction.to_bytes();
-        let instruction2 = Instruction::from_bytes(&bytes).unwrap();
+        let (instruction2, _) = Instruction::from_bytes(&bytes).unwrap();
 
         assert_eq!(instruction.instruction_type, instruction2.instruction_type);
         assert_eq!(instruction.data, instruction2.data);

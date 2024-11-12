@@ -50,6 +50,7 @@ impl std::fmt::Display for AccountError {
 
 impl std::error::Error for AccountError {}
 
+#[derive(Copy, Clone)]
 pub struct Account {
     public_key: PublicKey,
     secret_key: Option<SecretKey>,

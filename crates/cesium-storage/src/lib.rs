@@ -37,8 +37,6 @@ impl RocksDBStore {
 
         // Initialize RocksDB
         let db = DB::open(&options, db_path).map_err(|e| StorageError::RocksDBError(e))?;
-        println!("Opened RocksDB at path: {:?}", db.path());
-
         Ok(RocksDBStore { db: Arc::new(db) })
     }
 

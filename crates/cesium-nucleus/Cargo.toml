@@ -11,3 +11,5 @@ cesium-crypto.workspace = true
 cesium-nebula.workspace = true
 dashmap.workspace = true
 cesium-horizon.workspace = true
+cesium-storage.workspace = true
+futures.workspace = true

@@ -1,4 +1,4 @@
-use cesium_crypto::keys::SIG_BYTE_LEN;
+use cesium_crypto::keys::{Account, SIG_BYTE_LEN};
 use cesium_nebula::transaction::Transaction;
 use dashmap::DashMap;
 use std::sync::Arc;
@@ -8,16 +8,23 @@ use super::{
     node::{GraphNode, NodeId},
 };
 
-pub struct Graph {
+pub struct Graph<'a> {
+    account: &'a Account,
     nodes: Arc<DashMap<NodeId, Arc<GraphNode>>>,
     pack_iv_count: usize,
     pack_min_conf: u32,
     pack_proportion: f32,
 }
 
-impl Graph {
-    pub fn new(pack_iv_count: usize, pack_min_conf: u32, pack_proportion: f32) -> Self {
+impl<'a> Graph<'a> {
+    pub fn new(
+        account: &'a Account,
+        pack_iv_count: usize,
+        pack_min_conf: u32,
+        pack_proportion: f32,
+    ) -> Self {
         Self {
+            account,
             nodes: Arc::new(DashMap::new()),
             pack_iv_count,
             pack_min_conf,
@@ -25,8 +32,8 @@ impl Graph {
         }
     }
 
-    pub fn default() -> Self {
-        Self::new(2500, 5, 0.45)
+    pub fn default(account: &'a Account) -> Self {
+        Self::new(account, 2500, 5, 0.45)
     }
 
     // The minimal amount of nodes required to kick off the graph is
@@ -100,13 +107,31 @@ impl Graph {
     }
 
     async fn pack_history(&self) -> Result<(), GraphError> {
-        // Get all nodes with 5 or more references
+        // Get all nodes with 5 or more confirmed references
         let nodes = self.get_packable_nodes().await;
         // println!("Nodes to pack: {:?}", nodes);
 
+        // Convert the nodes to bytes
+        let msg = futures::future::join_all(
+            nodes
+                .iter()
+                .map(|node: &Arc<GraphNode>| async { node.to_bytes().await }),
+        )
+        .await
+        .concat();
+
+        // Sign the message
+        let sig = self
+            .account
+            .digest(&msg)
+            .map_err(|e| GraphError::SigningError(e))?;
+
         // TODO: This
-        // This function will get the 45% of nodes with the most references provided
-        // they have 5 or more references, then writes them to rocksdb
+        // Broadcast the checkpoint to other validators
+
+        if let Err(e) = cesium_storage::RocksDBStore::instance().put(&sig, &msg) {
+            return Err(GraphError::PutCheckpointError(e));
+        }
 
         // Remove nodes from memory
         for node in nodes {
@@ -207,8 +232,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_valid_transaction() {
-        let acc = Account::create();
-        let dag = Graph::default();
+        let acc: Account = Account::create();
+        let dag = Graph::default(&acc);
 
         let tx = create_valid_transaction(&acc);
         dag.add_genesis(&tx).await.unwrap();
@@ -219,7 +244,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_transaction_with_missing_signature() {
-        let dag = Graph::default();
+        let acc = Account::create();
+        let dag = Graph::default(&acc);
 
         let mut tx = Transaction::new(18000, 0);
         tx.add_instruction(Instruction::new(
@@ -236,7 +262,7 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_transaction_addition() {
         let acc = Arc::new(Account::create());
-        let dag = Arc::new(Graph::default());
+        let dag: Arc<Graph<'_>> = Arc::new(Graph::default(Box::leak(Box::new(acc.clone()))));
 
         dag.add_genesis(&create_valid_transaction(&acc))
             .await
@@ -264,7 +290,7 @@ mod tests {
     #[tokio::test]
     async fn test_pack_history() {
         let acc = Account::create();
-        let mut dag = Graph::default();
+        let mut dag = Graph::default(&acc);
         dag.set_interval_count(5);
         dag.set_min_references(3);
         dag.set_proportion(0.4);

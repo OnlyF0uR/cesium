@@ -1,5 +1,8 @@
 use std::{error::Error, fmt};
 
+use cesium_crypto::keys::AccountError;
+use cesium_storage::errors::StorageError;
+
 #[derive(Debug)]
 pub enum GraphError {
     MissingGenesisNode,
@@ -7,6 +10,9 @@ pub enum GraphError {
     InvalidNodeId,
     ReferenceNodeMismatch,
     MissingSignature,
+    NodeSerializationError(String),
+    SigningError(AccountError),
+    PutCheckpointError(StorageError),
 }
 
 // Implement Display for custom error formatting
@@ -18,6 +24,11 @@ impl fmt::Display for GraphError {
             GraphError::InvalidNodeId => write!(f, "Invalid node id"),
             GraphError::ReferenceNodeMismatch => write!(f, "Reference node mismatch"),
             GraphError::MissingSignature => write!(f, "Missing signature"),
+            GraphError::NodeSerializationError(ref e) => {
+                write!(f, "Node serialization error: {}", e)
+            }
+            GraphError::SigningError(ref e) => write!(f, "Signing error: {}", e),
+            GraphError::PutCheckpointError(ref e) => write!(f, "Put checkpoint error: {}", e),
         }
     }
 }
@@ -31,6 +42,9 @@ impl Error for GraphError {
             GraphError::InvalidNodeId => None,
             GraphError::ReferenceNodeMismatch => None,
             GraphError::MissingSignature => None,
+            GraphError::NodeSerializationError(_) => None,
+            GraphError::SigningError(ref e) => Some(e),
+            GraphError::PutCheckpointError(ref e) => Some(e),
         }
     }
 }
