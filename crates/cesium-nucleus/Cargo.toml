@@ -10,3 +10,4 @@ tokio.workspace = true
 cesium-crypto.workspace = true
 cesium-nebula.workspace = true
 dashmap.workspace = true
+cesium-horizon.workspace = true

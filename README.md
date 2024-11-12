@@ -7,7 +7,7 @@
 
 ### Smart contracts
 
-Smart contracts are written in WASM and executed in a control wasmer virtual machine named Selenide. The Selc program can be used to compile (including Universal-AOT) a smart contract to the desired format.
+Smart contracts are written in WASM and executed in a control wasmer virtual machine named Selenide.
 
 ### Note of Caution
 

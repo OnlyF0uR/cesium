@@ -6,7 +6,6 @@ members = [
   "crates/cesium-storage",
   "crates/cesium-nucleus",
   "crates/cesium-nebula",
-  "crates/cesium-consensus",
   "crates/cesium-sdk",
   "crates/cesium-standards",
   "crates/cesium-horizon",
@@ -21,7 +20,6 @@ members = [
   # Executables
   "validator",
   "clisium",
-  "selc"
 ]
 
 [workspace.package]
@@ -64,7 +62,6 @@ cesium-storage = { path = "crates/cesium-storage" }
 cesium-runtime = { path = "crates/cesium-runtime" }
 cesium-nucleus = { path = "crates/cesium-nucleus" }
 cesium-nebula = { path = "crates/cesium-nebula" }
-cesium-consensus = { path = "crates/cesium-consensus" }
 cesium-standards = { path = "crates/cesium-standards" }
 cesium-horizon = { path = "crates/cesium-horizon" }
 selenide-sdk = { path = "crates/selenide-sdk" }
