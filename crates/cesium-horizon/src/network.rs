@@ -1,9 +1,24 @@
-use cesium_crypto::keys::PublicKeyBytes;
-use tokio::sync::mpsc;
+use std::{
+    collections::{HashMap, HashSet},
+    net::Ipv4Addr,
+    str::FromStr,
+    sync::Arc,
+    time::Duration,
+};
+
+use dashmap::DashMap;
+use tokio::{
+    io::AsyncWriteExt,
+    net::{TcpStream, UdpSocket},
+    sync::{mpsc, Mutex},
+    time::sleep,
+};
+
+use crate::model::{Node, Packet};
 
 pub struct HorizonNetwork {
-    nodes: HashMap<PublicKeyBytes, Node>,
-    layers: Vec<Vec<PublicKeyBytes>>,
+    nodes: HashMap<String, Node>,
+    layers: Vec<Vec<String>>,
     fanout: usize,
     multicast_addr: String,
 }
@@ -18,27 +33,27 @@ impl HorizonNetwork {
         }
     }
 
-    async fn add_node(&mut self, id: String, layer: u32) -> mpsc::Receiver<Packet> {
+    pub async fn add_node(&mut self, id: String, layer: u32) -> mpsc::Receiver<Packet> {
         let (tx, rx) = mpsc::channel(100);
         let udp_socket = UdpSocket::bind(format!("0.0.0.0:{}", rand::random::<u16>()))
             .await
             .unwrap();
+
+        let multicast_addr = Ipv4Addr::from_str(&self.multicast_addr).unwrap();
+        let interface_addr = Ipv4Addr::from_str("0.0.0.0").unwrap();
+
         udp_socket
-            .join_multicast_v4(
-                &self.multicast_addr.parse().unwrap(),
-                &"0.0.0.0".parse().unwrap(),
-            )
-            .await
+            .join_multicast_v4(multicast_addr, interface_addr)
             .unwrap();
 
         let node = Node {
             id: id.clone(),
             layer,
-            neighbors: Arc::new(Mutex::new(Vec::new())),
+            neighbors_ips: Arc::new(Mutex::new(Vec::new())),
             received_packets: Arc::new(Mutex::new(HashSet::new())),
             tx,
             udp_socket: Arc::new(udp_socket),
-            tcp_connections: Arc::new(Mutex::new(HashMap::new())),
+            tcp_connections: DashMap::new(),
         };
 
         // Extend layers if necessary
@@ -49,11 +64,11 @@ impl HorizonNetwork {
         self.nodes.insert(id, node);
 
         // Recalculate neighborhoods
-        self.rebuild_neighborhoods();
+        self.rebuild_neighborhoods().await;
         rx
     }
 
-    fn rebuild_neighborhoods(&mut self) {
+    async fn rebuild_neighborhoods(&mut self) {
         for layer in 0..self.layers.len() {
             for node_idx in 0..self.layers[layer].len() {
                 let node_id = self.layers[layer][node_idx].clone();
@@ -72,13 +87,13 @@ impl HorizonNetwork {
                 }
 
                 if let Some(node) = self.nodes.get(&node_id) {
-                    *node.neighbors.lock().unwrap() = neighbors;
+                    *node.neighbors_ips.lock().await = neighbors;
                 }
             }
         }
     }
 
-    async fn broadcast(
+    pub async fn broadcast(
         &self,
         origin: String,
         data: Vec<u8>,
@@ -103,16 +118,19 @@ impl HorizonNetwork {
                     }
 
                     // TCP fallback
-                    let mut tcp_connections = node.tcp_connections.lock().await;
-                    for neighbor in node.neighbors.lock().await.iter() {
-                        let conn = tcp_connections
-                            .entry(neighbor.clone())
-                            .or_try_insert_with(|| async {
-                                TcpStream::connect(format!("{}:{}", neighbor, 12345)).await
-                            })
-                            .await?;
+                    for neightbour_ip in node.neighbors_ips.lock().await.iter() {
+                        let con = node.tcp_connections.get(neightbour_ip);
+                        if con.is_none() {
+                            let tcp_stream =
+                                TcpStream::connect(format!("{}:{}", neightbour_ip, 12345))
+                                    .await
+                                    .unwrap();
+                            node.tcp_connections
+                                .insert(neightbour_ip.clone(), tcp_stream);
+                        }
 
-                        if let Err(e) = conn.write_all(&packet.data).await {
+                        let mut con = node.tcp_connections.get_mut(neightbour_ip).unwrap();
+                        if let Err(e) = con.write_all(&packet.data).await {
                             eprintln!("TCP send error: {}", e);
                         }
                     }
@@ -121,62 +139,61 @@ impl HorizonNetwork {
         }
         Ok(())
     }
-}
 
-async fn handle_packets(mut node: Node, mut rx: mpsc::Receiver<Packet>) {
-    while let Some(packet) = rx.recv().await {
-        let packet_id = packet.id;
+    pub async fn handle_packets(&self, node: Node, mut rx: mpsc::Receiver<Packet>) {
+        while let Some(packet) = rx.recv().await {
+            let packet_id = packet.id;
 
-        // Check if we've seen this packet before
-        let should_process = {
-            let mut received = node.received_packets.lock().unwrap();
-            if !received.contains(&packet_id) {
-                received.insert(packet_id);
-                true
-            } else {
-                false
-            }
-        };
+            // Check if we've seen this packet before
+            let should_process = {
+                let mut received = node.received_packets.lock().await;
+                if !received.contains(&packet_id) {
+                    received.insert(packet_id);
+                    true
+                } else {
+                    false
+                }
+            };
 
-        if should_process {
-            // Process packet here
-            // println!(
-            //     "Node {} received packet {} from {}",
-            //     node.id, packet.id, packet.origin
-            // );
+            if should_process {
+                // Process packet here
+                // println!(
+                //     "Node {} received packet {} from {}",
+                //     node.id, packet.id, packet.origin
+                // );
 
-            // Get neighbors to forward to
-            let neighbors = node.neighbors.lock().unwrap().clone();
+                // Get neighbors to forward to
+                let neighbors = node.neighbors_ips.lock().await.clone();
 
-            // Add small random delay to prevent network congestion
-            sleep(Duration::from_millis(rand::random::<u64>() % 100)).await;
+                // Add small random delay to prevent network congestion
+                sleep(Duration::from_millis(rand::random::<u64>() % 100)).await;
 
-            // Forward to neighbors via UDP multicast and TCP fallback
-            let mut new_packet = packet.clone();
-            new_packet.retransmit_count += 1;
+                // Forward to neighbors via UDP multicast and TCP fallback
+                let mut new_packet = packet.clone();
+                new_packet.retransmit_count += 1;
 
-            for neighbor in neighbors {
-                if let Some(node) = self.nodes.get(&neighbor) {
-                    // Try UDP multicast first
-                    node.udp_socket
-                        .send_to(&new_packet.data, &self.multicast_addr)
-                        .await
-                        .unwrap();
-
-                    // Fall back to TCP if necessary
-                    let mut tcp_connections = node.tcp_connections.lock().unwrap();
-                    if !tcp_connections.contains_key(&node.id) {
-                        let tcp_stream = TcpStream::connect(format!("{}:{}", node.id, 12345))
+                for neighbor in neighbors {
+                    if let Some(node) = self.nodes.get(&neighbor) {
+                        // Try UDP multicast first
+                        node.udp_socket
+                            .send_to(&new_packet.data, &self.multicast_addr)
                             .await
                             .unwrap();
-                        tcp_connections.insert(node.id.clone(), tcp_stream);
+
+                        // Fall back to TCP if necessary
+                        if !node.tcp_connections.contains_key(&node.id) {
+                            let tcp_stream = TcpStream::connect(format!("{}:{}", node.id, 12345))
+                                .await
+                                .unwrap();
+                            node.tcp_connections.insert(node.id.clone(), tcp_stream);
+                        }
+                        node.tcp_connections
+                            .get_mut(&node.id)
+                            .unwrap()
+                            .write_all(&new_packet.data)
+                            .await
+                            .unwrap();
                     }
-                    tcp_connections
-                        .get_mut(&node.id)
-                        .unwrap()
-                        .write_all(&new_packet.data)
-                        .await
-                        .unwrap();
                 }
             }
         }

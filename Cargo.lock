@@ -269,6 +269,8 @@ name = "cesium-horizon"
 version = "0.2.0"
 dependencies = [
  "cesium-crypto",
+ "dashmap",
+ "rand",
  "tokio",
 ]
 

@@ -8,3 +8,5 @@ publish = false
 [dependencies]
 tokio.workspace = true
 cesium-crypto.workspace = true
+rand.workspace = true
+dashmap.workspace = true
