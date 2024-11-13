@@ -1,0 +1,15 @@
+[package]
+name = "cesium-rpc"
+edition = "2021"
+version.workspace = true
+license = "GPL-3.0"
+publish = false
+
+[dependencies]
+tokio.workspace = true
+futures.workspace = true
+jsonrpsee = { workspace = true, features = ["server", "macros"]}
+
+[dev-dependencies]
+# jsonrpsee from workspace with features
+jsonrpsee = { workspace = true, features = ["http-client", "ws-client", "macros"]}
