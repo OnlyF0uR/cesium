@@ -222,8 +222,19 @@ pub fn slice_to_array_96<T>(slice: &[T]) -> Result<&[T; 96], AccountError> {
 #[cfg(test)]
 mod tests {
     use cesium_standards::NATIVE_TOKEN;
+    use pqcrypto_sphincsplus::{
+        sphincsshake192ssimple_public_key_bytes, sphincsshake192ssimple_secret_key_bytes,
+        sphincsshake192ssimple_signature_bytes,
+    };
 
     use super::*;
+
+    #[test]
+    fn test_byte_lengths() {
+        assert_eq!(PUB_BYTE_LEN, sphincsshake192ssimple_public_key_bytes());
+        assert_eq!(SEC_BYTE_LEN, sphincsshake192ssimple_secret_key_bytes());
+        assert_eq!(SIG_BYTE_LEN, sphincsshake192ssimple_signature_bytes());
+    }
 
     #[test]
     fn test_account() {

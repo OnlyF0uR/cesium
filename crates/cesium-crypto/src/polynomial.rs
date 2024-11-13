@@ -1,8 +1,8 @@
-use super::fields::FieldElement;
+use super::bulletproofs::fields::FieldElement;
 
 // We are currently not using this, but we could
 // in the future use polynomial commitments to
-// in the bulletproofs implementation.
+// in the bulletproofs implementation for instance.
 
 #[derive(Clone, Debug)]
 pub struct Polynomial {
@@ -53,5 +53,15 @@ mod tests {
             .add(&FieldElement::new(3).mul(&point.square()));
 
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_zero_polynomial() {
+        let poly = Polynomial::zero();
+
+        let point = FieldElement::new(2);
+        let result = poly.evaluate(&point);
+
+        assert_eq!(result, FieldElement::new(0));
     }
 }

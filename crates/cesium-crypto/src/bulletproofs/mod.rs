@@ -1,5 +1,4 @@
 pub mod fields;
-pub mod polynomial;
 pub mod proof;
 pub mod prover;
 pub mod verifier;
