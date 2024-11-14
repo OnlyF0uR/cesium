@@ -11,8 +11,20 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     New,
-    Balance { account: Option<String> },
-    Deploy { wasm_file: String },
+    Balance {
+        account: Option<String>,
+    },
+    Deploy {
+        wasm_file: String,
+    },
+    Tx {
+        hash: String,
+    },
+    Send {
+        currency: String,
+        to: String,
+        amount: u128,
+    },
 }
 
 fn main() {
@@ -30,6 +42,16 @@ fn main() {
         }
         Commands::Deploy { wasm_file } => {
             println!("Deploying contract from file: {}", wasm_file);
+        }
+        Commands::Tx { hash } => {
+            println!("Checking transaction data for hash: {}", hash);
+        }
+        Commands::Send {
+            currency,
+            to,
+            amount,
+        } => {
+            println!("Sending {} {} to account: {}", amount, currency, to);
         }
     }
 }
