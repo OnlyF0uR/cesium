@@ -1,0 +1,10 @@
+[package]
+name = "cesium-rpc-client"
+edition = "2021"
+version.workspace = true
+license = "GPL-3.0"
+publish = true
+
+[dependencies]
+cesium-nebula.workspace = true
+jsonrpsee = { workspace = true, features = ["http-client", "ws-client", "macros"]}

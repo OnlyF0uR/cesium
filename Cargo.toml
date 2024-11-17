@@ -9,6 +9,7 @@ members = [
   "crates/cesium-standards",
   "crates/cesium-horizon",
   "crates/cesium-rpc",
+  "crates/cesium-rpc-client",
   "crates/selenide-sdk",
   "crates/selenide-sdk-macros",
   "crates/selenide-runtime",

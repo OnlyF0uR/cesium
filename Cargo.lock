@@ -373,6 +373,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cesium-rpc-client"
+version = "0.3.0"
+dependencies = [
+ "cesium-nebula",
+ "jsonrpsee",
+]
+
+[[package]]
 name = "cesium-standards"
 version = "0.3.0"
 dependencies = [
