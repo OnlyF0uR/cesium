@@ -6,7 +6,6 @@ members = [
   "crates/cesium-storage",
   "crates/cesium-nucleus",
   "crates/cesium-nebula",
-  "crates/cesium-sdk",
   "crates/cesium-standards",
   "crates/cesium-horizon",
   "crates/cesium-rpc",

@@ -373,13 +373,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cesium-sdk"
-version = "0.3.0"
-dependencies = [
- "cesium-nucleus",
-]
-
-[[package]]
 name = "cesium-standards"
 version = "0.3.0"
 dependencies = [
