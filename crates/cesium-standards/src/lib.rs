@@ -6,6 +6,7 @@ pub enum StandardToken {
     Cesium,
     WBTC,
     WETH,
+    MER,
 }
 
 pub struct TokenMetadata {
@@ -43,6 +44,15 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
             address: "weth11111111111111111111111111111111111111111111111111111111111111",
             decimals: 18,
             short_name: "weth",
+        },
+    );
+    // MER token for the Merodex exchange
+    m.insert(
+        StandardToken::MER,
+        TokenMetadata {
+            address: "mer1111111111111111111111111111111111111111111111111111111111111",
+            decimals: 18,
+            short_name: "mer",
         },
     );
     m
@@ -123,6 +133,11 @@ mod tests {
         assert_eq!(token.address().len(), 66);
         assert_eq!(token.decimals(), 18);
         assert_eq!(token.short_name(), "weth");
+
+        let token = StandardToken::MER;
+        assert_eq!(token.address().len(), 66);
+        assert_eq!(token.decimals(), 18);
+        assert_eq!(token.short_name(), "mer");
     }
 
     #[test]
