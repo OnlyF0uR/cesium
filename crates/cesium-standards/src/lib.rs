@@ -31,8 +31,17 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
         TokenMetadata {
             address: NATIVE_TOKEN,
             decimals: NATIVE_DECIMALS,
-            short_name: "cesium",
+            short_name: "CSM",
             full_name: "Cesium",
+        },
+    );
+    m.insert(
+        StandardToken::Cesium,
+        TokenMetadata {
+            address: NATIVE_TOKEN,
+            decimals: NATIVE_DECIMALS,
+            short_name: "SCSM",
+            full_name: "Staked Cesium",
         },
     );
     m.insert(
@@ -92,13 +101,6 @@ impl StandardToken {
         .iter()
         .copied()
     }
-    // pub fn try_from_address(address: &str) -> Result<Self, &'static str> {
-    //     if let Some(token) = StandardToken::from_address(address) {
-    //         Ok(token)
-    //     } else {
-    //         Err("Invalid token address")
-    //     }
-    // }
 
     pub fn is_standard_token(address: &str) -> bool {
         // let address = address.to_lowercase();
