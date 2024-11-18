@@ -50,7 +50,7 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
     m.insert(
         StandardToken::MER,
         TokenMetadata {
-            address: "mer1111111111111111111111111111111111111111111111111111111111111",
+            address: "mer111111111111111111111111111111111111111111111111111111111111111",
             decimals: 18,
             short_name: "mer",
         },
