@@ -1,6 +1,6 @@
 use cesium_crypto::keys::{PublicKeyBytes, PUB_BYTE_LEN};
 
-pub struct NFTMetadata {
+pub struct NFTHolderData {
     name_len: u32,
     name: String,
     url_len: u32,
@@ -18,7 +18,7 @@ macro_rules! bounds_check {
     };
 }
 
-impl NFTMetadata {
+impl NFTHolderData {
     pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         // Each field is prefixed with a usize length
         let mut offset = 0;
@@ -87,7 +87,7 @@ mod tests {
             PublicKeyBytes::from([0u8; PUB_BYTE_LEN]),
             PublicKeyBytes::from([1u8; PUB_BYTE_LEN]),
         ];
-        let metadata = NFTMetadata {
+        let metadata = NFTHolderData {
             name_len: name.len() as u32,
             name,
             url_len: uri.len() as u32,
@@ -97,7 +97,7 @@ mod tests {
         };
 
         let bytes = metadata.to_bytes();
-        let metadata2 = NFTMetadata::try_from_bytes(&bytes).unwrap();
+        let metadata2 = NFTHolderData::try_from_bytes(&bytes).unwrap();
 
         assert_eq!(metadata.name, metadata2.name);
         assert_eq!(metadata.uri, metadata2.uri);

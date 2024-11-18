@@ -1,42 +1,57 @@
 use rand::RngCore;
 use sha3::Digest;
 
-use crate::keys::PUB_BYTE_LEN;
+use crate::keys::{PublicKeyBytes, PUB_BYTE_LEN};
 
-pub fn generate_id() -> Vec<u8> {
+pub fn generate_id() -> PublicKeyBytes {
     let mut rng = rand::thread_rng();
-    let mut id = [0u8; 32];
+    let mut id = [0u8; PUB_BYTE_LEN];
     rng.fill_bytes(&mut id);
+    id
+}
 
+pub fn generate_derived_id(id: &[u8]) -> PublicKeyBytes {
     let mut hasher = sha3::Sha3_384::new();
     hasher.update(id);
-    let result = hasher.finalize().to_vec();
-
-    // We want to ensure that our hash is the size of
-    // a public key, so we can use it as an ID, now a
-    // sha3_384 hash is 48 bytes, so that works.
-    // But if we were to change the PUB_BYTE_LEN, we
-    // would need to change this as well.
-    if result.len() != PUB_BYTE_LEN {
-        panic!("Invalid public key length");
-    }
-
-    result
-}
-
-pub fn generate_id_slice() -> [u8; PUB_BYTE_LEN] {
-    let id = generate_id();
-    id.try_into().unwrap()
-}
-
-pub fn generate_id_from_data(data: &[u8]) -> String {
-    let mut hasher = sha3::Sha3_384::new();
-    hasher.update(data);
-    let result = hasher.finalize().to_vec();
-
-    to_readable_id(&result)
+    hasher
+        .finalize()
+        .as_slice()
+        .try_into()
+        .expect("Invalid public key length")
 }
 
 pub fn to_readable_id(id: &[u8]) -> String {
     bs58::encode(id).into_string()
+}
+
+pub fn from_readable_id(id: &str) -> Result<PublicKeyBytes, bs58::decode::Error> {
+    bs58::decode(id)
+        .into_vec()
+        .map(|v| v.try_into().expect("Invalid public key length"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_id() {
+        let id = generate_id();
+        assert_eq!(id.len(), PUB_BYTE_LEN);
+    }
+
+    #[test]
+    fn test_generate_derived_id() {
+        let id = generate_id();
+        let derived_id = generate_derived_id(&id);
+        assert_eq!(derived_id.len(), PUB_BYTE_LEN);
+    }
+
+    #[test]
+    fn test_readable_id() {
+        let id = generate_id();
+        let readable_id = to_readable_id(&id);
+        let decoded_id = from_readable_id(&readable_id).unwrap();
+        assert_eq!(id, decoded_id);
+    }
 }

@@ -1,10 +1,5 @@
 use cesium_crypto::keys::{PublicKeyBytes, PUB_BYTE_LEN};
 
-pub struct CurrencyAmountMetadata {
-    currency: PublicKeyBytes,
-    amount: u128,
-}
-
 macro_rules! bounds_check {
     ($bytes:expr, $pub_byte_len:expr) => {
         if $bytes.len() < $pub_byte_len {
@@ -14,7 +9,12 @@ macro_rules! bounds_check {
     };
 }
 
-impl CurrencyAmountMetadata {
+pub struct CurrencyHolderData {
+    currency: PublicKeyBytes,
+    amount: u128,
+}
+
+impl CurrencyHolderData {
     pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let mut offset = 0;
         bounds_check!(bytes, offset + PUB_BYTE_LEN);
@@ -43,10 +43,10 @@ mod tests {
     fn test_currency_amount_metadata() {
         let currency = PublicKeyBytes::from([0u8; PUB_BYTE_LEN]);
         let amount = 1000;
-        let metadata = CurrencyAmountMetadata { currency, amount };
+        let metadata = CurrencyHolderData { currency, amount };
 
         let bytes = metadata.to_bytes();
-        let metadata2 = CurrencyAmountMetadata::try_from_bytes(&bytes).unwrap();
+        let metadata2 = CurrencyHolderData::try_from_bytes(&bytes).unwrap();
 
         assert_eq!(metadata.currency, metadata2.currency);
         assert_eq!(metadata.amount, metadata2.amount);

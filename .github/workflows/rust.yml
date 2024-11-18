@@ -45,7 +45,7 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Check formatting
-        run: cargo fmt --all -- --check
+        run: make fmt
 
       # - name: Lint
       #   run: cargo clippy -- -D warnings

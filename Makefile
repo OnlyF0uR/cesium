@@ -12,5 +12,7 @@ ifeq ($(OS),Windows_NT)
 else
 	$(MAKE) -C contracts/example-c
 endif
+fmt:
+	cargo fmt --all -- --check
 test:
 	cargo test --exclude selenide-sdk --exclude state --exclude state-sdk --workspace

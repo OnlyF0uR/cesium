@@ -33,13 +33,18 @@ impl std::fmt::Display for AccountError {
         match self {
             AccountError::InvalidSecretKey => write!(f, "Invalid secret key"),
             AccountError::InvalidSignature => write!(f, "Invalid signature"),
-            AccountError::BaseEncodeError(e) => write!(f, "Base encoding error: {}", e),
-            AccountError::BaseDecodeError(e) => write!(f, "Base decoding error: {}", e),
-            AccountError::HexDecodeError(e) => write!(f, "Hex decoding error: {}", e),
+            AccountError::BaseEncodeError(e) => e.fmt(f),
+            AccountError::BaseDecodeError(e) => e.fmt(f),
+            AccountError::HexDecodeError(e) => e.fmt(f),
             AccountError::InvalidPublicKey => write!(f, "Invalid public key"),
+
+            // We use no `From` impl for these because their error types are not
+            // specific to public keys, secret keys, or signatures, but rather
+            // general, so we wrap them instead.
             AccountError::PubkeyParseError(e) => write!(f, "Public key parse error: {}", e),
             AccountError::SecretKeyParseError(e) => write!(f, "Secret key parse error: {}", e),
             AccountError::SignatureParseError(e) => write!(f, "Signature parse error: {}", e),
+
             AccountError::UnknownVerificationError => write!(f, "Unknown verification error"),
             AccountError::MissingSecretKey => write!(f, "Secret key is missing"),
             AccountError::InvalidKeypair => write!(f, "Invalid keypair"),
@@ -48,7 +53,37 @@ impl std::fmt::Display for AccountError {
     }
 }
 
-impl std::error::Error for AccountError {}
+impl From<bs58::encode::Error> for AccountError {
+    fn from(e: bs58::encode::Error) -> Self {
+        AccountError::BaseEncodeError(e)
+    }
+}
+
+impl From<bs58::decode::Error> for AccountError {
+    fn from(e: bs58::decode::Error) -> Self {
+        AccountError::BaseDecodeError(e)
+    }
+}
+
+impl From<hex::FromHexError> for AccountError {
+    fn from(e: hex::FromHexError) -> Self {
+        AccountError::HexDecodeError(e)
+    }
+}
+
+impl std::error::Error for AccountError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            AccountError::BaseEncodeError(e) => Some(e),
+            AccountError::BaseDecodeError(e) => Some(e),
+            AccountError::HexDecodeError(e) => Some(e),
+            AccountError::PubkeyParseError(e) => Some(e),
+            AccountError::SecretKeyParseError(e) => Some(e),
+            AccountError::SignatureParseError(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Copy, Clone)]
 pub struct Account {
@@ -83,9 +118,7 @@ impl Account {
     }
 
     pub fn readonly_from_readable_pub(public_key_s: &str) -> Result<Self, AccountError> {
-        let pk_bytes = bs58::decode(public_key_s)
-            .into_vec()
-            .map_err(AccountError::BaseDecodeError)?;
+        let pk_bytes = bs58::decode(public_key_s).into_vec()?;
         if pk_bytes.len() != PUB_BYTE_LEN {
             return Err(AccountError::InvalidPublicKey);
         }
@@ -157,10 +190,8 @@ impl Account {
     }
 
     pub fn from_readable(public_key_s: &str, secret_key_s: &str) -> Result<Self, AccountError> {
-        let pk_bytes = bs58::decode(public_key_s)
-            .into_vec()
-            .map_err(AccountError::BaseDecodeError)?;
-        let sk_bytes = hex::decode(secret_key_s).map_err(AccountError::HexDecodeError)?;
+        let pk_bytes = bs58::decode(public_key_s).into_vec()?;
+        let sk_bytes = hex::decode(secret_key_s)?;
 
         Self::from_bytes(&pk_bytes, &sk_bytes)
     }
@@ -192,9 +223,7 @@ pub fn address_to_bytes(address: &str) -> Result<PublicKeyBytes, AccountError> {
         standard_bytes.truncate(PUB_BYTE_LEN);
         standard_bytes
     } else {
-        bs58::decode(address)
-            .into_vec()
-            .map_err(AccountError::BaseDecodeError)?
+        bs58::decode(address).into_vec()?
     };
     slice_to_array_48(&bytes).map(|arr| *arr)
 }
