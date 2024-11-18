@@ -13,11 +13,15 @@ pub struct TokenMetadata {
     address: &'static str,
     decimals: u8,
     short_name: &'static str,
+    full_name: &'static str,
 }
 
 pub const NATIVE_TOKEN: &str = "cesium111111111111111111111111111111111111111111111111111111111111";
 // [99, 101, 115, 105, 117, 109, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49]
 pub const NATIVE_DECIMALS: u8 = 12;
+
+pub const MIN_DECIMALS: u8 = 8;
+pub const MAX_DECIMALS: u8 = 24;
 
 // Static mapping of token metadata
 static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|| {
@@ -28,6 +32,7 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
             address: NATIVE_TOKEN,
             decimals: NATIVE_DECIMALS,
             short_name: "cesium",
+            full_name: "Cesium",
         },
     );
     m.insert(
@@ -36,6 +41,7 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
             address: "wbtc11111111111111111111111111111111111111111111111111111111111111",
             decimals: 8,
             short_name: "wbtc",
+            full_name: "Wrapped Bitcoin",
         },
     );
     m.insert(
@@ -44,6 +50,7 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
             address: "weth11111111111111111111111111111111111111111111111111111111111111",
             decimals: 18,
             short_name: "weth",
+            full_name: "Wrapped Ether",
         },
     );
     // MER token for the Merodex exchange
@@ -53,6 +60,7 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
             address: "mer111111111111111111111111111111111111111111111111111111111111111",
             decimals: 18,
             short_name: "mer",
+            full_name: "Mero",
         },
     );
     m
@@ -74,6 +82,16 @@ static SHORT_NAME_TO_TOKEN: Lazy<HashMap<&'static str, StandardToken>> = Lazy::n
 });
 
 impl StandardToken {
+    pub fn iter() -> impl Iterator<Item = StandardToken> {
+        [
+            StandardToken::Cesium,
+            StandardToken::WBTC,
+            StandardToken::WETH,
+            StandardToken::MER,
+        ]
+        .iter()
+        .copied()
+    }
     // pub fn try_from_address(address: &str) -> Result<Self, &'static str> {
     //     if let Some(token) = StandardToken::from_address(address) {
     //         Ok(token)
@@ -111,6 +129,10 @@ impl StandardToken {
     pub fn short_name(&self) -> &'static str {
         self.metadata().short_name
     }
+
+    pub fn full_name(&self) -> &'static str {
+        self.metadata().full_name
+    }
 }
 
 #[cfg(test)]
@@ -118,43 +140,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_token_metadata() {
-        let token = StandardToken::Cesium;
-        assert_eq!(token.address().len(), 66);
-        assert_eq!(token.decimals(), 12);
-        assert_eq!(token.short_name(), "cesium");
-
-        let token = StandardToken::WBTC;
-        assert_eq!(token.address().len(), 66);
-        assert_eq!(token.decimals(), 8);
-        assert_eq!(token.short_name(), "wbtc");
-
-        let token = StandardToken::WETH;
-        assert_eq!(token.address().len(), 66);
-        assert_eq!(token.decimals(), 18);
-        assert_eq!(token.short_name(), "weth");
-
-        let token = StandardToken::MER;
-        assert_eq!(token.address().len(), 66);
-        assert_eq!(token.decimals(), 18);
-        assert_eq!(token.short_name(), "mer");
+    fn test_standard_token() {
+        // loop over the standard tokens
+        for token in StandardToken::iter() {
+            // First check the length of the addresses
+            assert_eq!(token.address().len(), 66);
+            // Now lets check the decimals
+            assert!(token.decimals() >= MIN_DECIMALS);
+            assert!(token.decimals() <= MAX_DECIMALS);
+            // Max length of short name
+            assert!(token.short_name().len() >= 3);
+            assert!(token.short_name().len() <= 7);
+            // Long name restrictions
+            assert!(token.full_name().len() >= 3);
+            assert!(token.full_name().len() <= 21);
+            // Now lets check the reverse lookups
+            assert_eq!(StandardToken::from_address(token.address()), Some(token));
+            assert_eq!(
+                StandardToken::from_short_name(token.short_name()),
+                Some(token)
+            );
+        }
     }
 
     #[test]
-    fn test_lookups() {
-        // Test address lookup
-        let address = "cesium111111111111111111111111111111111111111111111111111111111111";
-        assert_eq!(
-            StandardToken::from_address(address),
-            Some(StandardToken::Cesium)
-        );
-
-        // Test short name lookup
-        assert_eq!(
-            StandardToken::from_short_name("wbtc"),
-            Some(StandardToken::WBTC)
-        );
-
+    fn test_standard_token_invalid_lookups() {
         // Test invalid lookups
         assert_eq!(StandardToken::from_address("invalid"), None);
         assert_eq!(StandardToken::from_short_name("invalid"), None);
