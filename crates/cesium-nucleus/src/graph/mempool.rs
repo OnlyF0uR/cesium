@@ -36,6 +36,10 @@ impl<'a> Graph<'a> {
         Self::new(account, 2500, 5, 0.45)
     }
 
+    pub fn sync(&self) {
+        // TODO: Sync the graph with other validators
+    }
+
     // The minimal amount of nodes required to kick off the graph is
     pub async fn add_genesis(&self, input: &Transaction) -> Result<(), GraphError> {
         if let Err(e) = self.validate_item(input) {

@@ -9,3 +9,6 @@ publish = false
 [dependencies]
 dirs.workspace = true
 cesium-crypto.workspace = true
+cesium-nucleus.workspace = true
+tokio.workspace = true
+cesium-rpc.workspace = true

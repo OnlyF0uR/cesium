@@ -367,7 +367,9 @@ dependencies = [
 name = "cesium-rpc"
 version = "0.3.0"
 dependencies = [
+ "cesium-crypto",
  "cesium-nebula",
+ "cesium-nucleus",
  "futures",
  "hex",
  "jsonrpsee",
@@ -3044,7 +3046,10 @@ name = "validator"
 version = "0.3.0"
 dependencies = [
  "cesium-crypto",
+ "cesium-nucleus",
+ "cesium-rpc",
  "dirs",
+ "tokio",
 ]
 
 [[package]]

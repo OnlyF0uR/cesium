@@ -1,6 +1,8 @@
-use std::net::SocketAddr;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use cesium_nebula::transaction::{Transaction, TransactionError};
+use cesium_nucleus::graph::mempool::Graph;
 use hex::FromHexError;
 use jsonrpsee::{
     core::{async_trait, SubscriptionResult},
@@ -18,6 +20,7 @@ pub enum RpcError {
     HexError(hex::FromHexError),
     RpcError(String),
     TxError(TransactionError),
+    GraphError(cesium_nucleus::graph::errors::GraphError),
 }
 
 impl From<RpcError> for ErrorObject<'static> {
@@ -27,6 +30,7 @@ impl From<RpcError> for ErrorObject<'static> {
             RpcError::HexError(e) => ErrorObject::owned(2, "Hex Error", Some(e.to_string())),
             RpcError::RpcError(e) => ErrorObject::owned(2, "RPC Error", Some(e)),
             RpcError::TxError(e) => ErrorObject::owned(2, "Transaction Error", Some(e.to_string())),
+            RpcError::GraphError(e) => ErrorObject::owned(2, "Graph Error", Some(e.to_string())),
         }
     }
 }
@@ -46,6 +50,12 @@ impl From<FromHexError> for RpcError {
 impl From<TransactionError> for RpcError {
     fn from(e: TransactionError) -> Self {
         RpcError::TxError(e)
+    }
+}
+
+impl From<cesium_nucleus::graph::errors::GraphError> for RpcError {
+    fn from(e: cesium_nucleus::graph::errors::GraphError) -> Self {
+        RpcError::GraphError(e)
     }
 }
 
@@ -85,7 +95,15 @@ pub trait Rpc {
     async fn account_sub(&self) -> SubscriptionResult;
 }
 
-pub struct RpcServerImpl;
+pub struct RpcServerImpl {
+    dag: Arc<Mutex<Graph<'static>>>, // If possible, make Graph 'static
+}
+
+impl RpcServerImpl {
+    pub fn new(dag: Arc<Mutex<Graph<'static>>>) -> Self {
+        Self { dag }
+    }
+}
 
 #[async_trait]
 impl RpcServer for RpcServerImpl {
@@ -111,7 +129,8 @@ impl RpcServer for RpcServerImpl {
             return Err(TransactionError::InvalidSignature.into());
         }
 
-        // TODO: Submit the transaction to the dag/network
+        // TODO: May still need to do some things here?
+        self.dag.lock().await.add_item(&tx).await?;
 
         Ok("todo".to_string())
     }
@@ -177,7 +196,7 @@ impl RpcServer for RpcServerImpl {
     }
 }
 
-async fn run_server() -> Result<SocketAddr, RpcError> {
+pub async fn start_rpc(dag: &Arc<Mutex<Graph<'static>>>) -> Result<String, RpcError> {
     let rpc_middleware = jsonrpsee::server::middleware::rpc::RpcServiceBuilder::new();
     let server = jsonrpsee::server::Server::builder()
         .set_rpc_middleware(rpc_middleware)
@@ -185,21 +204,23 @@ async fn run_server() -> Result<SocketAddr, RpcError> {
         .await?;
 
     let addr = server.local_addr()?;
-    let handle = server.start(RpcServerImpl.into_rpc());
+    let rpc_server = RpcServerImpl::new(Arc::clone(dag));
+    let handle = server.start(rpc_server.into_rpc());
 
     tokio::spawn(handle.stopped());
 
-    Ok(addr)
-}
-
-pub async fn start_rpc() -> Result<String, RpcError> {
-    let server_addr = run_server().await?;
-    let url = format!("ws://{}", server_addr);
+    let url = format!("ws://{}", addr);
     Ok(url)
 }
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use tokio::sync::Mutex;
+
+    use cesium_crypto::keys::Account;
+    use cesium_nucleus::graph::mempool::Graph;
     use jsonrpsee::{
         core::{client::ClientT, ClientError},
         rpc_params,
@@ -208,7 +229,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_version() {
-        let url = super::start_rpc().await.unwrap();
+        // Create the account and wrap it in Arc
+        let acc = Box::leak(Box::new(Account::create()));
+        let dag = Arc::new(Mutex::new(Graph::default(acc)));
+
+        let url = super::start_rpc(&dag).await.unwrap();
 
         let client = WsClientBuilder::default().build(&url).await.unwrap();
         let result: Result<String, ClientError> = client.request("getVersion", rpc_params!()).await;

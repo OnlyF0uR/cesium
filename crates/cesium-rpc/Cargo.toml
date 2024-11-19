@@ -11,6 +11,8 @@ futures.workspace = true
 jsonrpsee = { workspace = true, features = ["server", "macros"]}
 hex.workspace = true
 cesium-nebula.workspace = true
+cesium-nucleus.workspace = true
 
 [dev-dependencies]
 jsonrpsee = { workspace = true, features = ["http-client", "ws-client", "macros"]}
+cesium-crypto.workspace = true

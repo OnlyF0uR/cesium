@@ -1,6 +1,9 @@
-use std::{fs::File, io::Write, path::PathBuf};
+use std::{fs::File, io::Write, path::PathBuf, sync::Arc};
 
 use cesium_crypto::keys::Account;
+use cesium_nucleus::graph::mempool::Graph;
+use cesium_rpc::start_rpc;
+use tokio::sync::Mutex;
 
 fn handle_account(cesium_dir: &PathBuf) -> Account {
     let account_sk_path = cesium_dir.join("account.sk");
@@ -56,7 +59,8 @@ fn handle_account(cesium_dir: &PathBuf) -> Account {
     account
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let home_dir = match dirs::home_dir() {
         Some(path) => path,
         None => {
@@ -83,4 +87,21 @@ fn main() {
 Address: {}"#,
         account.to_public_key_readable()
     );
+
+    // Get a dag instance
+    let acc = Box::leak(Box::new(account));
+    let dag = Arc::new(Mutex::new(Graph::default(acc)));
+
+    // This will also spawn a tokio process
+    let url = start_rpc(&dag).await.unwrap();
+    println!(
+        "RPC server started at: {}",
+        url.split("://").collect::<Vec<&str>>()[1]
+    );
+
+    // Now we just need to keep this process running
+    // TODO: Handle this properly
+    loop {
+        tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+    }
 }
