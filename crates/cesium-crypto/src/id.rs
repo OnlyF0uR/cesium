@@ -20,6 +20,19 @@ pub fn generate_derived_id(id: &[u8]) -> PublicKeyBytes {
         .expect("Invalid public key length")
 }
 
+pub fn generate_id_from_seed(seed: &[u8]) -> PublicKeyBytes {
+    let nonce = rand::thread_rng().next_u64();
+
+    let mut hasher = sha3::Sha3_384::new();
+    hasher.update(seed);
+    hasher.update(&nonce.to_le_bytes());
+    hasher
+        .finalize()
+        .as_slice()
+        .try_into()
+        .expect("Invalid public key length")
+}
+
 pub fn to_readable_id(id: &[u8]) -> String {
     bs58::encode(id).into_string()
 }

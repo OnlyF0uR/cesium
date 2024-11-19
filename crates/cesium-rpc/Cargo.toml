@@ -9,6 +9,8 @@ publish = false
 tokio.workspace = true
 futures.workspace = true
 jsonrpsee = { workspace = true, features = ["server", "macros"]}
+hex.workspace = true
+cesium-nebula.workspace = true
 
 [dev-dependencies]
 jsonrpsee = { workspace = true, features = ["http-client", "ws-client", "macros"]}

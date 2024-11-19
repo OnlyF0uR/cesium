@@ -117,6 +117,16 @@ impl Account {
         }
     }
 
+    pub fn readonly_from_pub_bytes(pk_bytes: &PublicKeyBytes) -> Result<Self, AccountError> {
+        if pk_bytes.len() != PUB_BYTE_LEN {
+            return Err(AccountError::InvalidPublicKey);
+        }
+
+        Ok(Self::readonly_from_pub(
+            PublicKey::from_bytes(pk_bytes).unwrap(),
+        ))
+    }
+
     pub fn readonly_from_readable_pub(public_key_s: &str) -> Result<Self, AccountError> {
         let pk_bytes = bs58::decode(public_key_s).into_vec()?;
         if pk_bytes.len() != PUB_BYTE_LEN {
@@ -169,6 +179,10 @@ impl Account {
 
     pub fn public_key(&self) -> &PublicKey {
         &self.public_key
+    }
+
+    pub fn pub_key_bytes(&self) -> &[u8; PUB_BYTE_LEN] {
+        slice_to_array_48(self.public_key.as_bytes()).unwrap()
     }
 
     pub fn from_bytes(

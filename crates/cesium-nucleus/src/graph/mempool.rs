@@ -43,7 +43,7 @@ impl<'a> Graph<'a> {
         }
 
         // Compute random node_id of 48 characters
-        let node_id = input.create_id();
+        let node_id = input.create_id()?;
         let node = GraphNode {
             id: node_id.clone(),
             instructions: input.instructions.clone(),
@@ -63,7 +63,7 @@ impl<'a> Graph<'a> {
         }
 
         // Compute random node_id of 48 characters
-        let node_id = input.create_id();
+        let node_id = input.create_id()?;
 
         let ref_nodes = self.get_pending_nodes().await;
         if ref_nodes.is_empty() {

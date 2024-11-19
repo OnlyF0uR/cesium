@@ -1,5 +1,7 @@
 use std::net::SocketAddr;
 
+use cesium_nebula::transaction::{Transaction, TransactionError};
+use hex::FromHexError;
 use jsonrpsee::{
     core::{async_trait, SubscriptionResult},
     proc_macros::rpc,
@@ -13,14 +15,18 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Debug)]
 pub enum RpcError {
     IoError(std::io::Error),
+    HexError(hex::FromHexError),
     RpcError(String),
+    TxError(TransactionError),
 }
 
 impl From<RpcError> for ErrorObject<'static> {
     fn from(err: RpcError) -> Self {
         match err {
             RpcError::IoError(e) => ErrorObject::owned(1, "IO Error", Some(e.to_string())),
+            RpcError::HexError(e) => ErrorObject::owned(2, "Hex Error", Some(e.to_string())),
             RpcError::RpcError(e) => ErrorObject::owned(2, "RPC Error", Some(e)),
+            RpcError::TxError(e) => ErrorObject::owned(2, "Transaction Error", Some(e.to_string())),
         }
     }
 }
@@ -28,6 +34,18 @@ impl From<RpcError> for ErrorObject<'static> {
 impl From<std::io::Error> for RpcError {
     fn from(e: std::io::Error) -> Self {
         RpcError::IoError(e)
+    }
+}
+
+impl From<FromHexError> for RpcError {
+    fn from(e: FromHexError) -> Self {
+        RpcError::HexError(e)
+    }
+}
+
+impl From<TransactionError> for RpcError {
+    fn from(e: TransactionError) -> Self {
+        RpcError::TxError(e)
     }
 }
 
@@ -44,6 +62,10 @@ pub trait Rpc {
     // getTransaction is a method that returns the transaction data given a transaction hash.
     #[method(name = "getTransaction")]
     async fn get_transaction(&self, hash: String) -> Result<String, RpcError>;
+
+    // sendTransaction is a method that sends a transaction to the network.
+    #[method(name = "sendTransaction")]
+    async fn send_transaction(&self, tx: String) -> Result<String, RpcError>;
 
     // getAccountInfo is a method that returns the account information for a given account.
     // This can be called on base accounts, as well as on data accounts
@@ -76,6 +98,21 @@ impl RpcServer for RpcServerImpl {
     }
 
     async fn get_transaction(&self, _hash: String) -> Result<String, RpcError> {
+        Ok("todo".to_string())
+    }
+
+    async fn send_transaction(&self, tx: String) -> Result<String, RpcError> {
+        let bytes = hex::decode(tx)?;
+        let tx = Transaction::from_bytes(&bytes)?;
+        if !tx.is_signed() {
+            return Err(TransactionError::NotSigned.into());
+        }
+        if !tx.verify()? {
+            return Err(TransactionError::InvalidSignature.into());
+        }
+
+        // TODO: Submit the transaction to the dag/network
+
         Ok("todo".to_string())
     }
 

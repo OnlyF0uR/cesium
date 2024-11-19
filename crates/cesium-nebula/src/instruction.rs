@@ -1,3 +1,32 @@
+#[derive(Debug)]
+pub enum InstructionError {
+    NoInstructions,
+    InvalidInstructionType,
+    InstructionLengthIncongruency,
+    ByteMismatch,
+}
+
+impl std::fmt::Display for InstructionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InstructionError::NoInstructions => write!(f, "Transaction has no instructions"),
+            InstructionError::InvalidInstructionType => write!(f, "Invalid instruction type"),
+            InstructionError::InstructionLengthIncongruency => {
+                write!(f, "Instruction length incongruency")
+            }
+            InstructionError::ByteMismatch => write!(f, "Byte mismatch"),
+        }
+    }
+}
+
+macro_rules! bounds_check {
+    ($bytes:expr, $pub_byte_len:expr) => {
+        if $bytes.len() < $pub_byte_len {
+            return Err(InstructionError::ByteMismatch);
+        }
+    };
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum InstructionType {
     // Smart contracts
@@ -51,6 +80,7 @@ impl InstructionType {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Instruction {
     pub instruction_type: InstructionType,
+    pub data_length: u32,
     pub data: Vec<u8>,
 }
 
@@ -58,37 +88,52 @@ impl Instruction {
     pub fn new(instruction_type: InstructionType, data: Vec<u8>) -> Instruction {
         Instruction {
             instruction_type,
+            data_length: data.len() as u32,
             data,
         }
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
+
         bytes.push(self.instruction_type.to_u8());
+        bytes.extend(self.data_length.to_le_bytes());
         bytes.extend(self.data.clone());
 
         bytes
     }
 
-    pub fn from_bytes(
-        bytes: &[u8],
-    ) -> Result<(Instruction, usize), Box<dyn std::error::Error + Send + Sync>> {
-        if bytes.len() < 1 {
-            return Err("Instruction is empty".into());
+    // This function should not really be called,
+    // where this functionality is required it is done inline due to
+    // performance and redundancy reasons.
+    #[deprecated]
+    pub fn from_bytes(bytes: &[u8]) -> Result<Instruction, InstructionError> {
+        if bytes.len() < 5 {
+            return Err(InstructionError::NoInstructions);
         }
 
-        let instruction_type =
-            InstructionType::from_u8(bytes[0]).ok_or("Invalid instruction type")?;
-        let data = bytes[1..].to_vec();
+        let mut offset = 0 as usize;
 
-        let amount_read = 1 + data.len();
-        Ok((
-            Instruction {
-                instruction_type,
-                data,
-            },
-            amount_read,
-        ))
+        // First get the type
+        bounds_check!(bytes, offset + 1);
+        let instr_type = InstructionType::from_u8(bytes[offset])
+            .ok_or(InstructionError::InvalidInstructionType)?;
+        offset += 1;
+
+        // Get the length of the data
+        bounds_check!(bytes, offset + 4);
+        let data_len = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+        offset += 4;
+
+        // Get the data
+        bounds_check!(bytes, offset + data_len as usize);
+        let data = bytes[offset..offset + data_len as usize].to_vec();
+
+        Ok(Instruction {
+            instruction_type: instr_type,
+            data_length: data_len,
+            data,
+        })
     }
 }
 
@@ -101,7 +146,8 @@ mod tests {
         let instruction = Instruction::new(InstructionType::CurrencyTransfer, vec![1, 2, 3]);
 
         let bytes = instruction.to_bytes();
-        let (instruction2, _) = Instruction::from_bytes(&bytes).unwrap();
+        #[allow(deprecated)]
+        let instruction2 = Instruction::from_bytes(&bytes).unwrap();
 
         assert_eq!(instruction.instruction_type, instruction2.instruction_type);
         assert_eq!(instruction.data, instruction2.data);

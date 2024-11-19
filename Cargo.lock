@@ -367,7 +367,9 @@ dependencies = [
 name = "cesium-rpc"
 version = "0.3.0"
 dependencies = [
+ "cesium-nebula",
  "futures",
+ "hex",
  "jsonrpsee",
  "tokio",
 ]

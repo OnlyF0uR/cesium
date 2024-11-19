@@ -1,6 +1,7 @@
-use std::{error::Error, fmt};
+use std::{array::TryFromSliceError, fmt, string::FromUtf8Error};
 
 use cesium_crypto::keys::AccountError;
+use cesium_nebula::{instruction::InstructionError, transaction::TransactionError};
 use cesium_storage::errors::StorageError;
 
 #[derive(Debug)]
@@ -13,6 +14,9 @@ pub enum GraphError {
     NodeSerializationError(String),
     SigningError(AccountError),
     PutCheckpointError(StorageError),
+    TransactionError(TransactionError),
+    InstructionError(InstructionError),
+    FromUtf8Error(FromUtf8Error),
 }
 
 // Implement Display for custom error formatting
@@ -29,22 +33,33 @@ impl fmt::Display for GraphError {
             }
             GraphError::SigningError(ref e) => write!(f, "Signing error: {}", e),
             GraphError::PutCheckpointError(ref e) => write!(f, "Put checkpoint error: {}", e),
+            GraphError::TransactionError(ref e) => e.fmt(f),
+            GraphError::InstructionError(ref e) => e.fmt(f),
+            GraphError::FromUtf8Error(ref e) => e.fmt(f),
         }
     }
 }
 
-// Implement the Error trait for custom error handling
-impl Error for GraphError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match *self {
-            GraphError::MissingGenesisNode => None,
-            GraphError::InvalidNodeInput => None,
-            GraphError::InvalidNodeId => None,
-            GraphError::ReferenceNodeMismatch => None,
-            GraphError::MissingSignature => None,
-            GraphError::NodeSerializationError(_) => None,
-            GraphError::SigningError(ref e) => Some(e),
-            GraphError::PutCheckpointError(ref e) => Some(e),
-        }
+impl From<TransactionError> for GraphError {
+    fn from(err: TransactionError) -> Self {
+        GraphError::TransactionError(err)
+    }
+}
+
+impl From<InstructionError> for GraphError {
+    fn from(err: InstructionError) -> Self {
+        GraphError::InstructionError(err)
+    }
+}
+
+impl From<TryFromSliceError> for GraphError {
+    fn from(_: TryFromSliceError) -> Self {
+        GraphError::InvalidNodeInput
+    }
+}
+
+impl From<FromUtf8Error> for GraphError {
+    fn from(err: FromUtf8Error) -> Self {
+        GraphError::FromUtf8Error(err)
     }
 }

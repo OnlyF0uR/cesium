@@ -1,5 +1,7 @@
-use cesium_nebula::instruction::Instruction;
+use cesium_nebula::instruction::{Instruction, InstructionError, InstructionType};
 use tokio::sync::RwLock;
+
+use super::errors::GraphError;
 
 pub type NodeId = String;
 
@@ -35,9 +37,9 @@ impl GraphNode {
         bytes
     }
 
-    pub async fn from_bytes(
-        bytes: &[u8],
-    ) -> Result<GraphNode, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<GraphNode, GraphError> {
+        // TODO: Rework this function like in cesium-nebula->transactions
+        // add bound checks etc.
         let mut cursor = 0;
 
         // Read id length and id
@@ -47,27 +49,34 @@ impl GraphNode {
         cursor += id_len;
 
         // Read instructions length and instructions
-        let instr_bytes_len = usize::from_le_bytes(
-            bytes[cursor..cursor + std::mem::size_of::<usize>()]
-                .try_into()
-                .map_err(|_| "Failed to read instructions length")?,
-        );
+        let instr_bytes_len =
+            usize::from_le_bytes(bytes[cursor..cursor + std::mem::size_of::<usize>()].try_into()?);
         cursor += std::mem::size_of::<usize>();
 
         let mut instructions = Vec::new();
         let instr_end = cursor + instr_bytes_len;
         while cursor < instr_end {
-            let (instruction, bytes_read) = Instruction::from_bytes(&bytes[cursor..instr_end])?;
-            instructions.push(instruction);
-            cursor += bytes_read;
+            let instr_type = InstructionType::from_u8(bytes[cursor])
+                .ok_or(InstructionError::InvalidInstructionType)?;
+            cursor += 1;
+            let data_len =
+                u32::from_le_bytes(bytes[cursor..cursor + 4].try_into().unwrap()) as usize;
+            cursor += 4;
+            // Now we know how much instruction data we need to read for this instruction
+            let data = bytes[cursor..cursor + data_len].to_vec();
+            cursor += data_len;
+
+            let instr = Instruction {
+                instruction_type: instr_type,
+                data_length: data_len as u32,
+                data,
+            };
+            instructions.push(instr);
         }
 
         // Read prev_nodes length and prev_nodes
-        let prev_nodes_bytes_len = usize::from_le_bytes(
-            bytes[cursor..cursor + std::mem::size_of::<usize>()]
-                .try_into()
-                .map_err(|_| "Failed to read prev_nodes length")?,
-        );
+        let prev_nodes_bytes_len =
+            usize::from_le_bytes(bytes[cursor..cursor + std::mem::size_of::<usize>()].try_into()?);
         cursor += std::mem::size_of::<usize>();
 
         let mut prev_nodes = Vec::new();
@@ -82,11 +91,8 @@ impl GraphNode {
         cursor += prev_nodes_bytes_len;
 
         // Read references
-        let references = u32::from_le_bytes(
-            bytes[cursor..cursor + std::mem::size_of::<u32>()]
-                .try_into()
-                .map_err(|_| "Failed to read references")?,
-        );
+        let references =
+            u32::from_le_bytes(bytes[cursor..cursor + std::mem::size_of::<u32>()].try_into()?);
 
         Ok(GraphNode {
             id,
@@ -115,7 +121,31 @@ mod tests {
         };
 
         let bytes = node.to_bytes().await;
-        let node2 = GraphNode::from_bytes(&bytes).await.unwrap();
+        let node2 = GraphNode::from_bytes(&bytes).unwrap();
+
+        assert_eq!(node.id, node2.id);
+        assert_eq!(node.instructions, node2.instructions);
+        assert_eq!(node.prev_nodes, node2.prev_nodes);
+        assert_eq!(
+            *node.references.read().await,
+            *node2.references.read().await
+        );
+    }
+
+    #[tokio::test]
+    async fn test_graph_node_to_bytes() {
+        let node = GraphNode {
+            id: "node1".to_string(),
+            instructions: vec![Instruction::new(
+                InstructionType::CurrencyTransfer,
+                vec![1, 2, 3],
+            )],
+            prev_nodes: vec!["node2".to_string()],
+            references: RwLock::new(1),
+        };
+
+        let bytes = node.to_bytes().await;
+        let node2 = GraphNode::from_bytes(&bytes).unwrap();
 
         assert_eq!(node.id, node2.id);
         assert_eq!(node.instructions, node2.instructions);
