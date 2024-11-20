@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use cesium_nebula::transaction::{Transaction, TransactionError};
 use cesium_nucleus::graph::mempool::Graph;
@@ -96,11 +95,11 @@ pub trait Rpc {
 }
 
 pub struct RpcServerImpl {
-    dag: Arc<Mutex<Graph<'static>>>, // If possible, make Graph 'static
+    dag: Arc<Graph<'static>>, // If possible, make Graph 'static
 }
 
 impl RpcServerImpl {
-    pub fn new(dag: Arc<Mutex<Graph<'static>>>) -> Self {
+    pub fn new(dag: Arc<Graph<'static>>) -> Self {
         Self { dag }
     }
 }
@@ -130,7 +129,7 @@ impl RpcServer for RpcServerImpl {
         }
 
         // TODO: May still need to do some things here?
-        self.dag.lock().await.add_item(&tx).await?;
+        self.dag.add_item(&tx).await?;
 
         Ok("todo".to_string())
     }
@@ -196,7 +195,7 @@ impl RpcServer for RpcServerImpl {
     }
 }
 
-pub async fn start_rpc(dag: &Arc<Mutex<Graph<'static>>>) -> Result<String, RpcError> {
+pub async fn start_rpc(dag: &Arc<Graph<'static>>) -> Result<String, RpcError> {
     let rpc_middleware = jsonrpsee::server::middleware::rpc::RpcServiceBuilder::new();
     let server = jsonrpsee::server::Server::builder()
         .set_rpc_middleware(rpc_middleware)
@@ -217,8 +216,6 @@ pub async fn start_rpc(dag: &Arc<Mutex<Graph<'static>>>) -> Result<String, RpcEr
 mod tests {
     use std::sync::Arc;
 
-    use tokio::sync::Mutex;
-
     use cesium_crypto::keys::Account;
     use cesium_nucleus::graph::mempool::Graph;
     use jsonrpsee::{
@@ -231,7 +228,7 @@ mod tests {
     async fn test_get_version() {
         // Create the account and wrap it in Arc
         let acc = Box::leak(Box::new(Account::create()));
-        let dag = Arc::new(Mutex::new(Graph::default(acc)));
+        let dag = Arc::new(Graph::default(acc));
 
         let url = super::start_rpc(&dag).await.unwrap();
 

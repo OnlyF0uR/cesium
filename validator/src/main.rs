@@ -3,7 +3,6 @@ use std::{fs::File, io::Write, path::PathBuf, sync::Arc};
 use cesium_crypto::keys::Account;
 use cesium_nucleus::graph::mempool::Graph;
 use cesium_rpc::start_rpc;
-use tokio::sync::Mutex;
 
 fn handle_account(cesium_dir: &PathBuf) -> Account {
     let account_sk_path = cesium_dir.join("account.sk");
@@ -90,7 +89,7 @@ Address: {}"#,
 
     // Get a dag instance
     let acc = Box::leak(Box::new(account));
-    let dag = Arc::new(Mutex::new(Graph::default(acc)));
+    let dag = Arc::new(Graph::default(acc));
 
     // This will also spawn a tokio process
     let url = start_rpc(&dag).await.unwrap();
