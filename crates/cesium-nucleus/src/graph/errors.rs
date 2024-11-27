@@ -1,6 +1,5 @@
 use std::{array::TryFromSliceError, fmt, string::FromUtf8Error};
 
-use cesium_crypto::keys::AccountError;
 use cesium_nebula::{instruction::InstructionError, transaction::TransactionError};
 use cesium_storage::errors::StorageError;
 
@@ -12,7 +11,6 @@ pub enum GraphError {
     ReferenceNodeMismatch,
     MissingSignature,
     NodeSerializationError(String),
-    SigningError(AccountError),
     PutCheckpointError(StorageError),
     TransactionError(TransactionError),
     InstructionError(InstructionError),
@@ -31,7 +29,6 @@ impl fmt::Display for GraphError {
             GraphError::NodeSerializationError(ref e) => {
                 write!(f, "Node serialization error: {}", e)
             }
-            GraphError::SigningError(ref e) => write!(f, "Signing error: {}", e),
             GraphError::PutCheckpointError(ref e) => write!(f, "Put checkpoint error: {}", e),
             GraphError::TransactionError(ref e) => e.fmt(f),
             GraphError::InstructionError(ref e) => e.fmt(f),

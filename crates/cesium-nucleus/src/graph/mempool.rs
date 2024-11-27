@@ -1,4 +1,4 @@
-use cesium_crypto::keys::{Account, SIG_BYTE_LEN};
+use cesium_crypto::dilithium::{keypair::SignerPair, SIG_BYTE_LEN};
 use cesium_nebula::transaction::Transaction;
 use dashmap::DashMap;
 use std::sync::Arc;
@@ -9,7 +9,7 @@ use super::{
 };
 
 pub struct Graph<'a> {
-    account: &'a Account,
+    account: &'a SignerPair,
     nodes: Arc<DashMap<NodeId, Arc<GraphNode>>>,
     pack_iv_count: usize,
     pack_min_conf: u32,
@@ -18,7 +18,7 @@ pub struct Graph<'a> {
 
 impl<'a> Graph<'a> {
     pub fn new(
-        account: &'a Account,
+        account: &'a SignerPair,
         pack_iv_count: usize,
         pack_min_conf: u32,
         pack_proportion: f32,
@@ -32,7 +32,7 @@ impl<'a> Graph<'a> {
         }
     }
 
-    pub fn default(account: &'a Account) -> Self {
+    pub fn default(account: &'a SignerPair) -> Self {
         Self::new(account, 2500, 5, 0.45)
     }
 
@@ -125,10 +125,7 @@ impl<'a> Graph<'a> {
         .concat();
 
         // Sign the message
-        let sig = self
-            .account
-            .digest(&msg)
-            .map_err(|e| GraphError::SigningError(e))?;
+        let sig = self.account.sign(&msg);
 
         // TODO: This
         // Broadcast the checkpoint to other validators
@@ -229,14 +226,13 @@ impl<'a> Graph<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cesium_crypto::keys::Account;
     use cesium_nebula::instruction::{Instruction, InstructionType};
     use std::sync::Arc;
     use tokio::task;
 
     #[tokio::test]
     async fn test_add_valid_transaction() {
-        let acc: Account = Account::create();
+        let acc = SignerPair::create();
         let dag = Graph::default(&acc);
 
         let tx = create_valid_transaction(&acc);
@@ -248,7 +244,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_transaction_with_missing_signature() {
-        let acc = Account::create();
+        let acc = SignerPair::create();
         let dag = Graph::default(&acc);
 
         let mut tx = Transaction::new(18000, 0);
@@ -265,7 +261,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_concurrent_transaction_addition() {
-        let acc = Arc::new(Account::create());
+        let acc = Arc::new(SignerPair::create());
         let dag: Arc<Graph<'_>> = Arc::new(Graph::default(Box::leak(Box::new(acc.clone()))));
 
         dag.add_genesis(&create_valid_transaction(&acc))
@@ -288,12 +284,14 @@ mod tests {
             }
         });
 
+        println!("Nodes: {:?}", dag.nodes);
+
         assert_eq!(dag.nodes.len(), 11);
     }
 
     #[tokio::test]
     async fn test_pack_history() {
-        let acc = Account::create();
+        let acc = SignerPair::create();
         let mut dag = Graph::default(&acc);
         dag.set_interval_count(5);
         dag.set_min_references(3);
@@ -319,7 +317,7 @@ mod tests {
         assert_eq!(dag.nodes.len(), 1);
     }
 
-    fn create_valid_transaction(acc: &Account) -> Transaction {
+    fn create_valid_transaction(acc: &SignerPair) -> Transaction {
         let mut tx = Transaction::new(18000, 0);
         tx.add_instruction(Instruction::new(
             InstructionType::CurrencyTransfer,

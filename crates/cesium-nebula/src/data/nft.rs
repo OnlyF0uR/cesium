@@ -1,4 +1,4 @@
-use cesium_crypto::keys::{PublicKeyBytes, PUB_BYTE_LEN};
+use cesium_crypto::dilithium::da::{DABytes, DA_BYTE_LEN};
 
 pub struct NFTHolderData {
     name_len: u32,
@@ -6,12 +6,12 @@ pub struct NFTHolderData {
     url_len: u32,
     uri: String,
     creator_count: u32,
-    creators: Vec<PublicKeyBytes>,
+    creators: Vec<DABytes>,
 }
 
 macro_rules! bounds_check {
-    ($bytes:expr, $pub_byte_len:expr) => {
-        if $bytes.len() < $pub_byte_len {
+    ($bytes:expr, $DA_BYTE_LEN:expr) => {
+        if $bytes.len() < $DA_BYTE_LEN {
             // TODO: Return an error instead of panicking
             panic!("Out of bounds NFT metadata bytes");
         }
@@ -42,11 +42,11 @@ impl NFTHolderData {
         let creator_count = u32::from_le_bytes(bytes[offset..offset + 4].try_into()?);
         offset += 4;
 
-        bounds_check!(bytes, offset + PUB_BYTE_LEN * creator_count as usize);
+        bounds_check!(bytes, offset + DA_BYTE_LEN * creator_count as usize);
         let mut creators = Vec::new();
         for _ in 0..creator_count {
-            let pk: [u8; PUB_BYTE_LEN] = bytes[offset..offset + PUB_BYTE_LEN].try_into().unwrap();
-            offset = offset + PUB_BYTE_LEN;
+            let pk: [u8; DA_BYTE_LEN] = bytes[offset..offset + DA_BYTE_LEN].try_into().unwrap();
+            offset = offset + DA_BYTE_LEN;
             creators.push(pk);
         }
 
@@ -76,6 +76,8 @@ impl NFTHolderData {
 
 #[cfg(test)]
 mod tests {
+    use cesium_crypto::dilithium::da::DisplayAddress;
+
     use super::*;
 
     #[test]
@@ -84,8 +86,8 @@ mod tests {
         let uri = "https://127.0.0.1".to_string();
         let creator_count = 2;
         let creators = vec![
-            PublicKeyBytes::from([0u8; PUB_BYTE_LEN]),
-            PublicKeyBytes::from([1u8; PUB_BYTE_LEN]),
+            *DisplayAddress::new().as_bytes(),
+            *DisplayAddress::new().as_bytes(),
         ];
         let metadata = NFTHolderData {
             name_len: name.len() as u32,

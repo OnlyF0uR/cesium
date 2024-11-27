@@ -1,8 +1,12 @@
 use std::time::SystemTime;
 
 use cesium_crypto::{
-    id::{generate_id_from_seed, to_readable_id},
-    keys::{Account, PublicKeyBytes, PUB_BYTE_LEN},
+    dilithium::{
+        da::DisplayAddress,
+        keypair::{SignerPair, VerifierPair, ViewOperations},
+        PublicKeyBytes, PUB_BYTE_LEN,
+    },
+    errors::CryptoError,
 };
 
 use crate::instruction::{Instruction, InstructionError, InstructionType};
@@ -12,7 +16,7 @@ pub enum TransactionError {
     NotSigned,
     InstructionError(InstructionError),
     ByteMismatch,
-    AccountError(cesium_crypto::keys::AccountError),
+    CryptoError(CryptoError),
     InvalidSignature,
 }
 
@@ -22,7 +26,7 @@ impl std::fmt::Display for TransactionError {
             TransactionError::NotSigned => write!(f, "Transaction is not signed"),
             TransactionError::InstructionError(e) => e.fmt(f),
             TransactionError::ByteMismatch => write!(f, "Byte mismatch"),
-            TransactionError::AccountError(e) => e.fmt(f),
+            TransactionError::CryptoError(e) => e.fmt(f),
             TransactionError::InvalidSignature => write!(f, "Invalid signature"),
         }
     }
@@ -34,9 +38,9 @@ impl From<InstructionError> for TransactionError {
     }
 }
 
-impl From<cesium_crypto::keys::AccountError> for TransactionError {
-    fn from(e: cesium_crypto::keys::AccountError) -> Self {
-        TransactionError::AccountError(e)
+impl From<CryptoError> for TransactionError {
+    fn from(e: CryptoError) -> Self {
+        TransactionError::CryptoError(e)
     }
 }
 
@@ -76,10 +80,7 @@ impl Transaction {
         }
     }
 
-    pub fn add_instruction(
-        &mut self,
-        instruction: Instruction,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn add_instruction(&mut self, instruction: Instruction) -> Result<(), TransactionError> {
         self.instructions_count += 1;
         self.instructions.push(instruction);
         Ok(())
@@ -101,6 +102,10 @@ impl Transaction {
         bytes.extend(self.signer.unwrap());
         bytes.extend(self.digest.as_ref().unwrap());
         Ok(bytes)
+    }
+
+    pub fn signer_da(&self) -> Option<String> {
+        self.signer.map(|s| DisplayAddress::from_pk(&s).as_str())
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, TransactionError> {
@@ -180,15 +185,8 @@ impl Transaction {
     }
 
     pub fn create_id(&self) -> Result<String, TransactionError> {
-        if !self.is_signed() {
-            return Err(TransactionError::NotSigned);
-        }
-
-        // Create a new id by hashing the timestamp with
-        // some nonce to ensure authenticity
-
-        let id = generate_id_from_seed(self.timestamp.to_le_bytes().as_ref());
-        Ok(to_readable_id(&id))
+        let id = DisplayAddress::new_from_seed(self.timestamp.to_le_bytes().as_ref());
+        Ok(id.as_str())
     }
 
     pub fn to_sig_bytes(&self) -> Vec<u8> {
@@ -204,21 +202,18 @@ impl Transaction {
         bytes
     }
 
-    pub fn sign(&mut self, kp: &Account) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn sign(&mut self, kp: &SignerPair) -> Result<(), TransactionError> {
         let message = self.to_sig_bytes();
-        let result = kp.digest(&message)?;
+        let result = kp.sign(&message);
 
         self.signer = Some(*kp.pub_key_bytes());
         self.digest = Some(result);
         Ok(())
     }
 
-    pub fn verify_ext(
-        &self,
-        kp: &Account,
-    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn verify_ext(&self, kp: &VerifierPair) -> Result<bool, TransactionError> {
         if self.digest.is_none() {
-            return Err("Transaction is not signed".into());
+            return Err(TransactionError::NotSigned);
         }
 
         let msg = self.to_sig_bytes();
@@ -230,7 +225,7 @@ impl Transaction {
             return Err(TransactionError::NotSigned);
         }
 
-        let kp = Account::readonly_from_pub_bytes(&self.signer.unwrap())?;
+        let kp = VerifierPair::from_bytes(&self.signer.unwrap())?;
         let msg = self.to_sig_bytes();
         Ok(kp.verify(&msg, &self.digest.as_ref().unwrap()).unwrap())
     }
@@ -244,7 +239,7 @@ mod tests {
 
     #[test]
     fn test_tx() {
-        let acc = Account::create();
+        let acc = SignerPair::create();
 
         let mut tx = Transaction::new(100, 10);
         let instruction = Instruction::new(InstructionType::CurrencyTransfer, vec![1, 2, 3]);
@@ -258,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_tx_bytes() {
-        let acc = Account::create();
+        let acc = SignerPair::create();
 
         let mut tx = Transaction::new(100, 10);
         let instruction = Instruction::new(InstructionType::CurrencyTransfer, vec![1, 2, 3]);

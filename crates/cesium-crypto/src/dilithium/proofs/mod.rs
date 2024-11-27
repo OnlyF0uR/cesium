@@ -10,88 +10,87 @@ pub struct Challenge(pub Vec<u8>);
 #[derive(Clone, Debug)]
 pub struct Response(pub Vec<u8>);
 
-pub mod errors;
 pub mod prover;
 pub mod verifier;
 
 #[cfg(test)]
 mod tests {
-    use errors::ZkError;
     use prover::ProverProtocol;
     use verifier::VerifierProtocol;
 
-    use crate::keys::Account;
+    use crate::dilithium::keypair::SignerPair;
 
     use super::*;
 
     #[test]
-    fn test_valid_proof() -> Result<(), ZkError> {
-        let account = Account::create();
+    fn test_valid_proof() {
+        let account = SignerPair::create();
 
         // Create a secret value
         let secret = b"my secret value";
         // Prover generates commitment
-        let (commitment, _salt) = ProverProtocol::generate_commitment(secret)?;
+        let (commitment, _salt) = ProverProtocol::generate_commitment(secret).unwrap();
 
         // Verifier generates challenge
         let challenge = VerifierProtocol::generate_challenge(&commitment);
 
         // Prover generates response
-        let response = ProverProtocol::generate_response(&account, &commitment, &challenge)?;
+        let response =
+            ProverProtocol::generate_response(&account, &commitment, &challenge).unwrap();
 
         // Verifier verifies the proof
-        let is_valid = VerifierProtocol::verify(&account, &commitment, &challenge, &response)?;
+        let is_valid =
+            VerifierProtocol::verify(&account, &commitment, &challenge, &response).unwrap();
 
         assert!(is_valid);
-        Ok(())
     }
 
     #[test]
-    fn test_invalid_account() -> Result<(), ZkError> {
-        let account = Account::create();
-        let wrong_account = Account::create(); // Generate different account
+    fn test_invalid_account() {
+        let account = SignerPair::create();
+        let wrong_account = SignerPair::create(); // Generate different account
 
         // Create a secret value
         let secret = b"my secret value";
         // Prover generates commitment
-        let (commitment, _salt) = ProverProtocol::generate_commitment(secret)?;
+        let (commitment, _salt) = ProverProtocol::generate_commitment(secret).unwrap();
 
         // Verifier generates challenge
         let challenge = VerifierProtocol::generate_challenge(&commitment);
 
         // Prover generates response with wrong secret key
-        let response = ProverProtocol::generate_response(&account, &commitment, &challenge)?;
+        let response =
+            ProverProtocol::generate_response(&account, &commitment, &challenge).unwrap();
 
         // Verifier verifies the proof
         let is_valid =
-            VerifierProtocol::verify(&wrong_account, &commitment, &challenge, &response)?;
+            VerifierProtocol::verify(&wrong_account, &commitment, &challenge, &response).unwrap();
 
         assert!(!is_valid);
-        Ok(())
     }
 
     #[test]
-    fn test_invalid_proof() -> Result<(), ZkError> {
-        let account = Account::create();
+    fn test_invalid_proof() {
+        let account = SignerPair::create();
 
         // Create a secret value
         let secret = b"my secret value";
         // Prover generates commitment
-        let (commitment, _salt) = ProverProtocol::generate_commitment(secret)?;
+        let (commitment, _salt) = ProverProtocol::generate_commitment(secret).unwrap();
 
         // Verifier generates challenge
         let challenge = VerifierProtocol::generate_challenge(&commitment);
 
         // Prover generates response
-        let response = ProverProtocol::generate_response(&account, &commitment, &challenge)?;
+        let response =
+            ProverProtocol::generate_response(&account, &commitment, &challenge).unwrap();
 
         // Verifier verifies the proof with wrong commitment
         let wrong_commitment = Commitment(vec![0; CHALLENGE_LENGTH]);
         let is_valid =
-            VerifierProtocol::verify(&account, &wrong_commitment, &challenge, &response)?;
+            VerifierProtocol::verify(&account, &wrong_commitment, &challenge, &response).unwrap();
 
         assert!(!is_valid);
-        Ok(())
     }
 
     #[test]
@@ -106,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_non_interactive() {
-        let account = Account::create();
+        let account = SignerPair::create();
         let secret = b"my secret value";
 
         let (commitment, response) =
@@ -119,8 +118,8 @@ mod tests {
 
     #[test]
     fn test_non_interactive_wrong_account() {
-        let account = Account::create();
-        let wrong_account = Account::create();
+        let account = SignerPair::create();
+        let wrong_account = SignerPair::create();
         let secret = b"my secret value";
 
         let (commitment, response) =
@@ -135,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_non_interactive_wrong_commitment() {
-        let account = Account::create();
+        let account = SignerPair::create();
         let secret = b"my secret value";
 
         let (_, response) = ProverProtocol::generate_non_interactive(&account, secret).unwrap();

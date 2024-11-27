@@ -43,6 +43,7 @@ strip = 'none'
 [workspace.dependencies]
 tokio = { version = "1.41.0", features = ["full"] }
 pqcrypto-sphincsplus = { version = "0.7.0", features = ["avx2"] }
+pqcrypto-mldsa = { version = "0.1.0", features = ["avx2"] }
 pqcrypto-traits = "0.3.5"
 hex = "0.4.3"
 rand = "0.8.5"

@@ -216,7 +216,7 @@ pub async fn start_rpc(dag: &Arc<Graph<'static>>) -> Result<String, RpcError> {
 mod tests {
     use std::sync::Arc;
 
-    use cesium_crypto::keys::Account;
+    use cesium_crypto::dilithium::keypair::SignerPair;
     use cesium_nucleus::graph::mempool::Graph;
     use jsonrpsee::{
         core::{client::ClientT, ClientError},
@@ -227,7 +227,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_version() {
         // Create the account and wrap it in Arc
-        let acc = Box::leak(Box::new(Account::create()));
+        let acc = Box::leak(Box::new(SignerPair::create()));
         let dag = Arc::new(Graph::default(acc));
 
         let url = super::start_rpc(&dag).await.unwrap();

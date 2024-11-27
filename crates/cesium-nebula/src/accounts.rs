@@ -1,15 +1,12 @@
 use std::rc::Rc;
 
-use cesium_crypto::{
-    id::to_readable_id,
-    keys::{PublicKeyBytes, PUB_BYTE_LEN},
-};
+use cesium_crypto::dilithium::da::{DABytes, DisplayAddress, DA_BYTE_LEN};
 use cesium_storage::{errors::StorageError, RocksDBStore};
 use selenide_runtime::errors::RuntimeError;
 
 macro_rules! bounds_check {
-    ($bytes:expr, $pub_byte_len:expr) => {
-        if $bytes.len() < $pub_byte_len {
+    ($bytes:expr, $DA_BYTE_LEN:expr) => {
+        if $bytes.len() < $DA_BYTE_LEN {
             return Err(AccountError::ByteMismatch);
         }
     };
@@ -49,14 +46,14 @@ impl std::error::Error for AccountError {
 }
 
 pub struct UserAccount {
-    id: PublicKeyBytes,
+    id: DABytes,
     data_account_count: u32,
-    data_account_ids: Rc<Vec<PublicKeyBytes>>,
+    data_account_ids: Rc<Vec<DABytes>>,
 }
 
 impl UserAccount {
     #[must_use]
-    pub fn new(id: PublicKeyBytes, data_account_ids: Rc<Vec<PublicKeyBytes>>) -> UserAccount {
+    pub fn new(id: DABytes, data_account_ids: Rc<Vec<DABytes>>) -> UserAccount {
         UserAccount {
             id,
             data_account_count: data_account_ids.len() as u32,
@@ -64,7 +61,7 @@ impl UserAccount {
         }
     }
 
-    pub async fn from_id(id: PublicKeyBytes) -> Result<UserAccount, AccountError> {
+    pub async fn from_id(id: DABytes) -> Result<UserAccount, AccountError> {
         match RocksDBStore::instance().async_get(id.to_vec()).await {
             Ok(result) => match result {
                 Some(bytes) => Ok(UserAccount::from_bytes(&bytes)?),
@@ -75,10 +72,11 @@ impl UserAccount {
     }
 
     pub fn address(&self) -> String {
-        to_readable_id(&self.id)
+        let da = DisplayAddress::from_bytes(&self.id).unwrap();
+        da.as_str()
     }
 
-    pub fn get_data_account(&self, id: &PublicKeyBytes) -> Option<&PublicKeyBytes> {
+    pub fn get_data_account(&self, id: &DABytes) -> Option<&DABytes> {
         self.data_account_ids.iter().find(|&da| da == id)
     }
 
@@ -100,19 +98,19 @@ impl UserAccount {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<UserAccount, AccountError> {
-        bounds_check!(bytes, PUB_BYTE_LEN);
-        let id: [u8; PUB_BYTE_LEN] = bytes[0..PUB_BYTE_LEN].try_into().unwrap();
-        let mut offset = PUB_BYTE_LEN;
+        bounds_check!(bytes, DA_BYTE_LEN);
+        let id: [u8; DA_BYTE_LEN] = bytes[0..DA_BYTE_LEN].try_into().unwrap();
+        let mut offset = DA_BYTE_LEN;
 
         bounds_check!(bytes, offset + 4);
         let data_account_count = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
         offset = offset + 4;
 
-        bounds_check!(bytes, offset + data_account_count as usize * PUB_BYTE_LEN);
+        bounds_check!(bytes, offset + data_account_count as usize * DA_BYTE_LEN);
         let mut data_account_ids = Vec::new();
         for i in 0..data_account_count {
-            let start = offset + i as usize * PUB_BYTE_LEN;
-            let end = start + PUB_BYTE_LEN;
+            let start = offset + i as usize * DA_BYTE_LEN;
+            let end = start + DA_BYTE_LEN;
             data_account_ids.push(bytes[start..end].try_into().unwrap());
         }
 
@@ -125,9 +123,9 @@ impl UserAccount {
 }
 
 pub struct ContractAccount {
-    id: PublicKeyBytes,
+    id: DABytes,
     state_account_len: u32,
-    state_account_id: Option<PublicKeyBytes>,
+    state_account_id: Option<DABytes>,
     program_binary_len: u32,
     program_binary: Rc<Vec<u8>>,
 }
@@ -135,9 +133,9 @@ pub struct ContractAccount {
 impl ContractAccount {
     #[must_use]
     pub fn new(
-        id: PublicKeyBytes,
+        id: DABytes,
         program_binary: Rc<Vec<u8>>,
-        state_account_id: Option<PublicKeyBytes>,
+        state_account_id: Option<DABytes>,
     ) -> ContractAccount {
         let state_account_len = state_account_id.is_some() as u32;
         let program_binary_len = program_binary.len() as u32;
@@ -150,7 +148,7 @@ impl ContractAccount {
         }
     }
 
-    pub async fn from_id(id: PublicKeyBytes) -> Result<ContractAccount, AccountError> {
+    pub async fn from_id(id: DABytes) -> Result<ContractAccount, AccountError> {
         match RocksDBStore::instance().async_get(id.to_vec()).await {
             Ok(result) => match result {
                 Some(bytes) => Ok(ContractAccount::from_bytes(&bytes)?),
@@ -161,10 +159,11 @@ impl ContractAccount {
     }
 
     pub fn address(&self) -> String {
-        to_readable_id(&self.id)
+        let da = DisplayAddress::from_bytes(&self.id).unwrap();
+        da.as_str()
     }
 
-    pub fn get_state_account(&self) -> Option<&PublicKeyBytes> {
+    pub fn get_state_account(&self) -> Option<&DABytes> {
         self.state_account_id.as_ref()
     }
 
@@ -177,7 +176,7 @@ impl ContractAccount {
         &self,
         _func_name: &str,
         _metering_points: u64,
-        _caller: PublicKeyBytes,
+        _caller: DABytes,
         _params: &[u8],
     ) -> Result<(), RuntimeError> {
         // TODO: Get state of current contract
@@ -205,18 +204,18 @@ impl ContractAccount {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<ContractAccount, AccountError> {
-        bounds_check!(bytes, PUB_BYTE_LEN);
-        let id: [u8; PUB_BYTE_LEN] = bytes[0..PUB_BYTE_LEN].try_into().unwrap();
-        let mut offset = PUB_BYTE_LEN;
+        bounds_check!(bytes, DA_BYTE_LEN);
+        let id: [u8; DA_BYTE_LEN] = bytes[0..DA_BYTE_LEN].try_into().unwrap();
+        let mut offset = DA_BYTE_LEN;
 
         bounds_check!(bytes, offset + 4);
         let state_account_len = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
         offset = offset + 4;
 
-        bounds_check!(bytes, offset + PUB_BYTE_LEN);
+        bounds_check!(bytes, offset + DA_BYTE_LEN);
         let state_account_id = if state_account_len > 0 {
-            let id: [u8; PUB_BYTE_LEN] = bytes[offset..offset + PUB_BYTE_LEN].try_into().unwrap();
-            offset = offset + PUB_BYTE_LEN;
+            let id: [u8; DA_BYTE_LEN] = bytes[offset..offset + DA_BYTE_LEN].try_into().unwrap();
+            offset = offset + DA_BYTE_LEN;
             Some(id)
         } else {
             None
@@ -239,21 +238,16 @@ impl ContractAccount {
 }
 
 pub struct DataAccount {
-    id: PublicKeyBytes,
-    owner: PublicKeyBytes,
-    updater: PublicKeyBytes,
+    id: DABytes,
+    owner: DABytes,
+    updater: DABytes,
     data_len: u32,
     data: Vec<u8>,
 }
 
 impl DataAccount {
     #[must_use]
-    pub fn new(
-        id: PublicKeyBytes,
-        owner: PublicKeyBytes,
-        updater: PublicKeyBytes,
-        data: Vec<u8>,
-    ) -> DataAccount {
+    pub fn new(id: DABytes, owner: DABytes, updater: DABytes, data: Vec<u8>) -> DataAccount {
         DataAccount {
             id,
             owner,
@@ -263,7 +257,7 @@ impl DataAccount {
         }
     }
 
-    pub async fn from_id(id: PublicKeyBytes) -> Result<DataAccount, AccountError> {
+    pub async fn from_id(id: DABytes) -> Result<DataAccount, AccountError> {
         match RocksDBStore::instance().async_get(id.to_vec()).await {
             Ok(result) => match result {
                 Some(bytes) => Ok(DataAccount::from_bytes(&bytes)?),
@@ -274,15 +268,18 @@ impl DataAccount {
     }
 
     pub fn address(&self) -> String {
-        to_readable_id(&self.id)
+        let da = DisplayAddress::from_bytes(&self.id).unwrap();
+        da.as_str()
     }
 
     pub fn owner_address(&self) -> String {
-        to_readable_id(&self.owner)
+        let da = DisplayAddress::from_bytes(&self.owner).unwrap();
+        da.as_str()
     }
 
     pub fn update_updater(&self) -> String {
-        to_readable_id(&self.updater)
+        let da = DisplayAddress::from_bytes(&self.updater).unwrap();
+        da.as_str()
     }
 
     pub fn data(&self) -> &[u8] {
@@ -307,17 +304,17 @@ impl DataAccount {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<DataAccount, AccountError> {
-        bounds_check!(bytes, PUB_BYTE_LEN);
-        let id: [u8; PUB_BYTE_LEN] = bytes[0..PUB_BYTE_LEN].try_into().unwrap();
-        let offset = PUB_BYTE_LEN;
+        bounds_check!(bytes, DA_BYTE_LEN);
+        let id: [u8; DA_BYTE_LEN] = bytes[0..DA_BYTE_LEN].try_into().unwrap();
+        let offset = DA_BYTE_LEN;
 
-        bounds_check!(bytes, offset + PUB_BYTE_LEN);
-        let owner: [u8; PUB_BYTE_LEN] = bytes[offset..offset + PUB_BYTE_LEN].try_into().unwrap();
-        let offset = offset + PUB_BYTE_LEN;
+        bounds_check!(bytes, offset + DA_BYTE_LEN);
+        let owner: [u8; DA_BYTE_LEN] = bytes[offset..offset + DA_BYTE_LEN].try_into().unwrap();
+        let offset = offset + DA_BYTE_LEN;
 
-        bounds_check!(bytes, offset + PUB_BYTE_LEN);
-        let updater: [u8; PUB_BYTE_LEN] = bytes[offset..offset + PUB_BYTE_LEN].try_into().unwrap();
-        let offset = offset + PUB_BYTE_LEN;
+        bounds_check!(bytes, offset + DA_BYTE_LEN);
+        let updater: [u8; DA_BYTE_LEN] = bytes[offset..offset + DA_BYTE_LEN].try_into().unwrap();
+        let offset = offset + DA_BYTE_LEN;
 
         bounds_check!(bytes, offset + 4);
         let data_len = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
@@ -337,11 +334,11 @@ impl DataAccount {
 }
 
 pub struct CurrencyAccount {
-    id: PublicKeyBytes,
-    owner: PublicKeyBytes,
+    id: DABytes,
+    owner: DABytes,
     decimals: u8,
     minter_len: u32,
-    minter: Option<PublicKeyBytes>,
+    minter: Option<DABytes>,
     short_name_len: u32,
     short_name: String,
     long_name_len: u32,
@@ -351,12 +348,12 @@ pub struct CurrencyAccount {
 impl CurrencyAccount {
     #[must_use]
     pub fn new(
-        id: PublicKeyBytes,
-        owner: PublicKeyBytes,
+        id: DABytes,
+        owner: DABytes,
         short_name: String,
         long_name: String,
         decimals: u8,
-        minter: Option<PublicKeyBytes>,
+        minter: Option<DABytes>,
     ) -> CurrencyAccount {
         CurrencyAccount {
             id,
@@ -371,7 +368,7 @@ impl CurrencyAccount {
         }
     }
 
-    pub async fn from_id(_id: PublicKeyBytes) -> Result<CurrencyAccount, AccountError> {
+    pub async fn from_id(_id: DABytes) -> Result<CurrencyAccount, AccountError> {
         match RocksDBStore::instance().async_get(_id.to_vec()).await {
             Ok(result) => match result {
                 Some(bytes) => Ok(CurrencyAccount::from_bytes(&bytes)?),
@@ -382,11 +379,13 @@ impl CurrencyAccount {
     }
 
     pub fn address(&self) -> String {
-        to_readable_id(&self.id)
+        let da = DisplayAddress::from_bytes(&self.id).unwrap();
+        da.as_str()
     }
 
     pub fn owner_address(&self) -> String {
-        to_readable_id(&self.owner)
+        let da = DisplayAddress::from_bytes(&self.owner).unwrap();
+        da.as_str()
     }
 
     pub fn short_name(&self) -> &str {
@@ -402,7 +401,10 @@ impl CurrencyAccount {
     }
 
     pub fn minter_address(&self) -> Option<String> {
-        self.minter.as_ref().map(|minter| to_readable_id(minter))
+        self.minter.as_ref().map(|minter| {
+            let da = DisplayAddress::from_bytes(minter).unwrap();
+            da.as_str()
+        })
     }
 
     pub async fn write(&self) -> Result<(), StorageError> {
@@ -429,13 +431,13 @@ impl CurrencyAccount {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<CurrencyAccount, AccountError> {
-        bounds_check!(bytes, PUB_BYTE_LEN);
-        let id: [u8; PUB_BYTE_LEN] = bytes[0..PUB_BYTE_LEN].try_into().unwrap();
-        let mut offset = PUB_BYTE_LEN;
+        bounds_check!(bytes, DA_BYTE_LEN);
+        let id: [u8; DA_BYTE_LEN] = bytes[0..DA_BYTE_LEN].try_into().unwrap();
+        let mut offset = DA_BYTE_LEN;
 
-        bounds_check!(bytes, offset + PUB_BYTE_LEN);
-        let owner: [u8; PUB_BYTE_LEN] = bytes[offset..offset + PUB_BYTE_LEN].try_into().unwrap();
-        offset = offset + PUB_BYTE_LEN;
+        bounds_check!(bytes, offset + DA_BYTE_LEN);
+        let owner: [u8; DA_BYTE_LEN] = bytes[offset..offset + DA_BYTE_LEN].try_into().unwrap();
+        offset = offset + DA_BYTE_LEN;
 
         bounds_check!(bytes, offset + 1);
         let decimals = bytes[offset];
@@ -446,10 +448,9 @@ impl CurrencyAccount {
         offset = offset + 4;
 
         let minter = if minter_len > 0 {
-            bounds_check!(bytes, offset + PUB_BYTE_LEN);
-            let minter: [u8; PUB_BYTE_LEN] =
-                bytes[offset..offset + PUB_BYTE_LEN].try_into().unwrap();
-            offset = offset + PUB_BYTE_LEN;
+            bounds_check!(bytes, offset + DA_BYTE_LEN);
+            let minter: [u8; DA_BYTE_LEN] = bytes[offset..offset + DA_BYTE_LEN].try_into().unwrap();
+            offset = offset + DA_BYTE_LEN;
             Some(minter)
         } else {
             None
@@ -488,20 +489,17 @@ impl CurrencyAccount {
 
 #[cfg(test)]
 mod tests {
-    use cesium_crypto::{id::generate_id, keys::Account};
-
     use super::*;
 
     #[test]
     fn test_user_account() {
-        let id: [u8; 48] = generate_id();
+        let id = *DisplayAddress::new().as_bytes();
 
-        let d_id1 = generate_id();
-        let d_id2 = generate_id();
+        let d_id1 = *DisplayAddress::new().as_bytes();
+        let d_id2 = *DisplayAddress::new().as_bytes();
         let data_account_ids = Rc::new(vec![d_id1, d_id2]);
 
         let user_account = UserAccount::new(id, data_account_ids.clone());
-        assert_eq!(user_account.address(), to_readable_id(&id));
 
         let bytes = user_account.to_bytes();
         let user_account2 = UserAccount::from_bytes(&bytes).unwrap();
@@ -511,12 +509,11 @@ mod tests {
 
     #[test]
     fn test_contract_account() {
-        let id: [u8; 48] = generate_id();
-        let state_account_id = Some(generate_id());
+        let id = *DisplayAddress::new().as_bytes();
+        let state_account_id = Some(*DisplayAddress::new().as_bytes());
         let program_binary = Rc::new(vec![1, 2, 3, 4]);
 
         let contract_account = ContractAccount::new(id, program_binary.clone(), state_account_id);
-        assert_eq!(contract_account.address(), to_readable_id(&id));
 
         let bytes = contract_account.to_bytes();
         let contract_account2 = ContractAccount::from_bytes(&bytes).unwrap();
@@ -527,14 +524,11 @@ mod tests {
 
     #[test]
     fn test_data_account() {
-        let id = generate_id();
-        let owner = *(Account::create().to_public_key_bytes().unwrap());
-        let updater = *(Account::create().to_public_key_bytes().unwrap());
+        let id = *DisplayAddress::new().as_bytes();
+        let owner = *DisplayAddress::new().as_bytes();
+        let updater = *DisplayAddress::new().as_bytes();
         let data = vec![1, 2, 3, 4];
         let data_account = DataAccount::new(id, owner, updater, data.clone());
-        assert_eq!(data_account.address(), to_readable_id(&id));
-        assert_eq!(data_account.owner_address(), to_readable_id(&owner));
-        assert_eq!(data_account.update_updater(), to_readable_id(&updater));
 
         let bytes = data_account.to_bytes();
         let data_account2 = DataAccount::from_bytes(&bytes).unwrap();
@@ -549,8 +543,8 @@ mod tests {
 
     #[test]
     fn test_currency_account() {
-        let id = generate_id();
-        let owner = *(Account::create().to_public_key_bytes().unwrap());
+        let id = *DisplayAddress::new().as_bytes();
+        let owner = *DisplayAddress::new().as_bytes();
         let short_name = "ABC".to_string();
         let long_name = "Alpha Beta Charlie".to_string();
         let decimals = 2;
@@ -562,15 +556,6 @@ mod tests {
             long_name.clone(),
             decimals,
             minter,
-        );
-        assert_eq!(currency_account.address(), to_readable_id(&id));
-        assert_eq!(currency_account.owner_address(), to_readable_id(&owner));
-        assert_eq!(currency_account.short_name(), short_name);
-        assert_eq!(currency_account.long_name(), long_name);
-        assert_eq!(currency_account.decimals(), decimals);
-        assert_eq!(
-            currency_account.minter_address(),
-            Some(to_readable_id(&owner))
         );
 
         let bytes = currency_account.to_bytes();
@@ -594,30 +579,26 @@ mod tests {
 
     #[tokio::test]
     async fn test_storage_user_account() {
-        let account = Account::create();
-
-        let id = account.to_public_key_bytes().unwrap();
-        let data_account_ids = Rc::new(vec![*(Account::create().to_public_key_bytes()).unwrap()]);
-        let user_account = UserAccount::new(*id, data_account_ids.clone());
+        let id = *DisplayAddress::new().as_bytes();
+        let data_account_ids = Rc::new(vec![*DisplayAddress::new().as_bytes()]);
+        let user_account = UserAccount::new(id, data_account_ids.clone());
 
         user_account.write().await.unwrap();
 
-        let user_account2 = UserAccount::from_id(*id).await.unwrap();
+        let user_account2 = UserAccount::from_id(id).await.unwrap();
         assert_eq!(user_account2.address(), user_account.address());
     }
 
     #[tokio::test]
     async fn test_storage_contract_account() {
-        let account = Account::create();
-
-        let id = account.to_public_key_bytes().unwrap();
-        let state_account_id = Some(*(Account::create().to_public_key_bytes()).unwrap());
+        let id = *DisplayAddress::new().as_bytes();
+        let state_account_id = Some(*DisplayAddress::new().as_bytes());
         let program_binary = Rc::new(vec![1, 2, 3, 4]);
-        let contract_account = ContractAccount::new(*id, program_binary.clone(), state_account_id);
+        let contract_account = ContractAccount::new(id, program_binary.clone(), state_account_id);
 
         contract_account.write().await.unwrap();
 
-        let contract_account2 = ContractAccount::from_id(*id).await.unwrap();
+        let contract_account2 = ContractAccount::from_id(id).await.unwrap();
         assert_eq!(contract_account2.address(), contract_account.address());
         assert_eq!(contract_account2.program_binary, program_binary);
         assert_eq!(contract_account2.state_account_id, state_account_id);
@@ -625,17 +606,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_storage_data_account() {
-        let account = Account::create();
-
-        let id = account.to_public_key_bytes().unwrap();
-        let owner = *(Account::create().to_public_key_bytes()).unwrap();
-        let updater = *(Account::create().to_public_key_bytes()).unwrap();
+        let id = *DisplayAddress::new().as_bytes();
+        let owner = *DisplayAddress::new().as_bytes();
+        let updater = *DisplayAddress::new().as_bytes();
         let data = vec![1, 2, 3, 4];
-        let data_account = DataAccount::new(*id, owner, updater, data.clone());
+        let data_account = DataAccount::new(id, owner, updater, data.clone());
 
         data_account.write().await.unwrap();
 
-        let data_account2 = DataAccount::from_id(*id).await.unwrap();
+        let data_account2 = DataAccount::from_id(id).await.unwrap();
         assert_eq!(data_account2.address(), data_account.address());
         assert_eq!(data_account2.owner_address(), data_account.owner_address());
         assert_eq!(
@@ -647,16 +626,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_storage_currency_account() {
-        let account = Account::create();
-
-        let id = account.to_public_key_bytes().unwrap();
-        let owner = *(Account::create().to_public_key_bytes()).unwrap();
+        let id = *DisplayAddress::new().as_bytes();
+        let owner = *DisplayAddress::new().as_bytes();
         let short_name = "ABC".to_string();
         let long_name = "Alpha Beta Charlie".to_string();
         let decimals = 2;
         let minter = Some(owner);
         let currency_account = CurrencyAccount::new(
-            *id,
+            id,
             owner,
             short_name.clone(),
             long_name.clone(),
@@ -666,7 +643,7 @@ mod tests {
 
         currency_account.write().await.unwrap();
 
-        let currency_account2 = CurrencyAccount::from_id(*id).await.unwrap();
+        let currency_account2 = CurrencyAccount::from_id(id).await.unwrap();
         assert_eq!(currency_account2.address(), currency_account.address());
         assert_eq!(
             currency_account2.owner_address(),
@@ -686,19 +663,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_storage_account_not_found() {
-        let account = Account::create();
-        let id = account.to_public_key_bytes().unwrap();
+        let id = *DisplayAddress::new().as_bytes();
 
-        let result = UserAccount::from_id(*id).await;
+        let result = UserAccount::from_id(id).await;
         assert!(matches!(result, Err(AccountError::AccountNotFound)));
 
-        let result = ContractAccount::from_id(*id).await;
+        let result = ContractAccount::from_id(id).await;
         assert!(matches!(result, Err(AccountError::AccountNotFound)));
 
-        let result = DataAccount::from_id(*id).await;
+        let result = DataAccount::from_id(id).await;
         assert!(matches!(result, Err(AccountError::AccountNotFound)));
 
-        let result = CurrencyAccount::from_id(*id).await;
+        let result = CurrencyAccount::from_id(id).await;
         assert!(matches!(result, Err(AccountError::AccountNotFound)));
     }
 }

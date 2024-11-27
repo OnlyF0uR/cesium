@@ -5,9 +5,12 @@ use sha3::{
     Shake256,
 };
 
-use crate::keys::Account;
+use crate::{
+    dilithium::keypair::{SignerPair, ViewOperations},
+    errors::CryptoError,
+};
 
-use super::{errors::ZkError, Challenge, Commitment, Response, CHALLENGE_LENGTH};
+use super::{Challenge, Commitment, Response, CHALLENGE_LENGTH};
 
 /// Functions for the Verifier role
 pub struct VerifierProtocol;
@@ -25,30 +28,27 @@ impl VerifierProtocol {
         Challenge(challenge)
     }
 
-    /// Verify a proof using SPHINCS+ signature verification
+    /// Verify a proof using Dilithium (mldsa44) signature verification
     pub fn verify(
-        account: &Account,
+        account: &SignerPair,
         commitment: &Commitment,
         challenge: &Challenge,
         response: &Response,
-    ) -> Result<bool, ZkError> {
+    ) -> Result<bool, CryptoError> {
         // Reconstruct message that was signed
         let mut message = Vec::new();
         message.extend_from_slice(&commitment.0);
         message.extend_from_slice(&challenge.0);
 
         // Convert response back to DetachedSignature
-        match account.verify(&message, &response.0) {
-            Ok(b) => Ok(b),
-            Err(e) => Err(ZkError::AccountError(e)),
-        }
+        account.verify(&message, &response.0)
     }
 
     pub fn verify_non_interactive(
-        account: &Account,
+        account: &SignerPair,
         commitment: &Commitment,
         response: &Response,
-    ) -> Result<bool, ZkError> {
+    ) -> Result<bool, CryptoError> {
         // Deterministically recreate the challenge from the commitment
         let mut hasher = Shake256::default();
         hasher.update(&commitment.0);
@@ -63,9 +63,6 @@ impl VerifierProtocol {
         message.extend_from_slice(&challenge);
 
         // Verify the response signature
-        match account.verify(&message, &response.0) {
-            Ok(b) => Ok(b),
-            Err(e) => Err(ZkError::AccountError(e)),
-        }
+        account.verify(&message, &response.0)
     }
 }

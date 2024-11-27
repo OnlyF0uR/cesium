@@ -6,16 +6,16 @@ use sha3::{
     Shake256,
 };
 
-use crate::keys::Account;
+use crate::{dilithium::keypair::SignerPair, errors::CryptoError};
 
-use super::{errors::ZkError, Challenge, Commitment, Response, CHALLENGE_LENGTH, SALT_LENGTH};
+use super::{Challenge, Commitment, Response, CHALLENGE_LENGTH, SALT_LENGTH};
 
 /// Functions for the Prover role
 pub struct ProverProtocol;
 
 impl ProverProtocol {
     /// Generate a commitment to a secret
-    pub fn generate_commitment(secret: &[u8]) -> Result<(Commitment, Vec<u8>), ZkError> {
+    pub fn generate_commitment(secret: &[u8]) -> Result<(Commitment, Vec<u8>), CryptoError> {
         let mut rng = OsRng;
         let mut salt = vec![0u8; SALT_LENGTH];
         rng.fill(&mut salt[..]);
@@ -33,28 +33,26 @@ impl ProverProtocol {
 
     /// Generate a response using SPHINCS+ signature
     pub fn generate_response(
-        account: &Account,
+        account: &SignerPair,
         commitment: &Commitment,
         challenge: &Challenge,
-    ) -> Result<Response, ZkError> {
+    ) -> Result<Response, CryptoError> {
         // Create message to sign by concatenating commitment and challenge
         let mut message = Vec::new();
         message.extend_from_slice(&commitment.0);
         message.extend_from_slice(&challenge.0);
 
         // Sign the message using SPHINCS+
-        let signature = account
-            .digest(&message)
-            .map_err(|e| ZkError::SigningError(e.to_string()))?;
+        let signature = account.sign(&message);
 
         Ok(Response(signature))
     }
 
     /// Generate commitment and response non-interactive
     pub fn generate_non_interactive(
-        account: &Account,
+        account: &SignerPair,
         secret: &[u8],
-    ) -> Result<(Commitment, Response), ZkError> {
+    ) -> Result<(Commitment, Response), CryptoError> {
         let mut rng = OsRng;
         let mut salt = vec![0u8; SALT_LENGTH];
         rng.fill(&mut salt[..]);
@@ -80,9 +78,7 @@ impl ProverProtocol {
         message.extend_from_slice(&commitment);
         message.extend_from_slice(&challenge);
 
-        let signature = account
-            .digest(&message)
-            .map_err(|e| ZkError::SigningError(e.to_string()))?;
+        let signature = account.sign(&message);
 
         Ok((Commitment(commitment), Response(signature)))
     }

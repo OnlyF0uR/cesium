@@ -75,15 +75,18 @@ pub mod errors;
 
 #[cfg(test)]
 mod tests {
+    use cesium_crypto::dilithium::keypair::{SignerPair, ViewOperations};
+
     use super::*;
-    use cesium_crypto::keys::Account;
 
     #[test]
     fn test_storage_put() {
         let store = RocksDBStore::instance();
-        let account = Account::create();
+        let account = SignerPair::create();
 
-        let key = account.to_public_key_bytes().unwrap();
+        let da = account.get_da();
+
+        let key = da.as_bytes();
         let value = "hello world".as_bytes();
 
         store.put(key, value).unwrap();
@@ -95,9 +98,11 @@ mod tests {
     #[tokio::test]
     async fn test_storage_put_async() {
         let store = RocksDBStore::instance();
-        let account = Account::create();
+        let account = SignerPair::create();
 
-        let key = account.to_public_key_bytes().unwrap();
+        let da = account.get_da();
+
+        let key = da.as_bytes();
         let value = "hello world".as_bytes();
 
         store.async_put(key.to_vec(), value.to_vec()).await.unwrap();
