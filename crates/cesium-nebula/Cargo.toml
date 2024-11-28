@@ -9,6 +9,8 @@ publish = false
 cesium-crypto.workspace = true
 cesium-storage.workspace = true
 selenide-runtime.workspace = true
+cesium-standards.workspace = true
+tokio.workspace = true
+dashmap.workspace = true
 
 [dev-dependencies]
-tokio.workspace = true

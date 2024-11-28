@@ -8,6 +8,6 @@ Currently the only standardised and implemented scheme for post-quantum public k
 
 Awaiting standardisation (FN-DSA, FFT) by NIST and subsequent implementation of FIPS-206 in the pycrypto package. Current implementation is using Falcon-1024 (NIST level 5).
 
-### Sphinx+
+### Sphincs+
 
 Awaiting standardised implementation (SLH-DSA) of FIPS-205 in the pqcrypto package.

@@ -1,3 +1,4 @@
+use cesium_crypto::mldsa::da::DA_BYTE_LEN;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
@@ -16,8 +17,11 @@ pub struct TokenMetadata {
     full_name: &'static str,
 }
 
-pub const NATIVE_TOKEN: &str = "cesium111111111111111111111111111111111111111111111111111111111111";
-// [99, 101, 115, 105, 117, 109, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49]
+pub const BASE_TX_FEE: u128 = 1000; // 0.000001 Cesium
+
+pub const NATIVE_TOKEN: &str = "cesium11111111111111111111111111111111111111";
+pub const NATIVE_TOKEN_BYTES: &[u8; DA_BYTE_LEN] = b"cesium11111111111111111111111111"; // The bytes for a display address are 32, so we remove some trailing 1s that are on the display address
+
 pub const NATIVE_DECIMALS: u8 = 12;
 
 pub const MIN_DECIMALS: u8 = 8;
@@ -38,7 +42,7 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
     m.insert(
         StandardToken::Cesium,
         TokenMetadata {
-            address: NATIVE_TOKEN,
+            address: "scesium1111111111111111111111111111111111111",
             decimals: NATIVE_DECIMALS,
             short_name: "SCSM",
             full_name: "Staked Cesium",
@@ -47,7 +51,7 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
     m.insert(
         StandardToken::WBTC,
         TokenMetadata {
-            address: "wbtc11111111111111111111111111111111111111111111111111111111111111",
+            address: "wbtc1111111111111111111111111111111111111111",
             decimals: 8,
             short_name: "wbtc",
             full_name: "Wrapped Bitcoin",
@@ -56,7 +60,7 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
     m.insert(
         StandardToken::WETH,
         TokenMetadata {
-            address: "weth11111111111111111111111111111111111111111111111111111111111111",
+            address: "weth1111111111111111111111111111111111111111",
             decimals: 18,
             short_name: "weth",
             full_name: "Wrapped Ether",
@@ -66,7 +70,7 @@ static TOKEN_METADATA: Lazy<HashMap<StandardToken, TokenMetadata>> = Lazy::new(|
     m.insert(
         StandardToken::MER,
         TokenMetadata {
-            address: "mer111111111111111111111111111111111111111111111111111111111111111",
+            address: "mer11111111111111111111111111111111111111111",
             decimals: 18,
             short_name: "mer",
             full_name: "Mero",
@@ -124,6 +128,10 @@ impl StandardToken {
         self.metadata().address
     }
 
+    pub fn address_bytes(&self) -> &[u8; DA_BYTE_LEN] {
+        self.address().as_bytes().try_into().unwrap()
+    }
+
     pub fn decimals(&self) -> u8 {
         self.metadata().decimals
     }
@@ -146,7 +154,7 @@ mod tests {
         // loop over the standard tokens
         for token in StandardToken::iter() {
             // First check the length of the addresses
-            assert_eq!(token.address().len(), 66);
+            assert_eq!(token.address().len(), 44);
             // Now lets check the decimals
             assert!(token.decimals() >= MIN_DECIMALS);
             assert!(token.decimals() <= MAX_DECIMALS);

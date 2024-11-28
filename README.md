@@ -12,7 +12,3 @@ Cesium uses a Directed Acyclic Graph (DAG) for processing transactions asynchron
 ### Smart contracts
 
 Smart contracts are compuled in WASM and executed in a control wasmer virtual sandbox, this runtime is referred to as Selenide. An sdk is provided to improve DX.
-
-### Note of Caution
-
-The current implementation, specifically the current cryptography (cesium-crypto), is highly experimental and not yet audited for security. While the SPHINX+ and Keccak support is somewhat robust and based on established practices, the bulletsproofs and (non-)interactive zero-knowledge tranformations are merely based on established theory.

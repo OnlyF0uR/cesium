@@ -3,7 +3,7 @@ use sha3::Digest;
 
 use crate::errors::CryptoError;
 
-use super::PublicKeyBytes;
+use super::{PublicKeyBytes, PUB_BYTE_LEN};
 
 // For Dilithium the public key and display address are not interchangeable
 // the display address is a hash of the public key, it is thus not reversible
@@ -34,6 +34,19 @@ impl DisplayAddress {
 
         let da = hasher.finalize().as_slice().try_into().unwrap();
         Self { da }
+    }
+
+    pub fn try_from_pk(id: &[u8]) -> Result<Self, CryptoError> {
+        if id.len() != PUB_BYTE_LEN {
+            return Err(CryptoError::InvalidDisplayAddress);
+        }
+
+        let mut hasher = sha3::Sha3_256::new();
+        hasher.update(id);
+        let mut da = [0u8; DA_BYTE_LEN];
+        da.copy_from_slice(&hasher.finalize());
+
+        Ok(Self { da })
     }
 
     pub fn from_pk(id: &PublicKeyBytes) -> Self {

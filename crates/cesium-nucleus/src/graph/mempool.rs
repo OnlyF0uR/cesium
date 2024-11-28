@@ -113,7 +113,6 @@ impl<'a> Graph<'a> {
     async fn pack_history(&self) -> Result<(), GraphError> {
         // Get all nodes with 5 or more confirmed references
         let nodes = self.get_packable_nodes().await;
-        // println!("Nodes to pack: {:?}", nodes);
 
         // Convert the nodes to bytes
         let msg = futures::future::join_all(
@@ -133,6 +132,8 @@ impl<'a> Graph<'a> {
         if let Err(e) = cesium_storage::RocksDBStore::instance().put(&sig, &msg) {
             return Err(GraphError::PutCheckpointError(e));
         }
+
+        // TODO: Update the balances of the accounts in this checkpoint
 
         // Remove nodes from memory
         for node in nodes {

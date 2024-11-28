@@ -3,7 +3,7 @@ use sha3::Digest;
 
 use crate::errors::CryptoError;
 
-use super::PublicKeyBytes;
+use super::{PublicKeyBytes, PUB_BYTE_LEN};
 
 // For Sphincs+ the public key and display address are interchangeable
 // they represent the exact same bytes
@@ -31,6 +31,19 @@ impl DisplayAddress {
         da.copy_from_slice(&hasher.finalize());
 
         Self { da }
+    }
+
+    pub fn try_from_pk(id: &[u8]) -> Result<Self, CryptoError> {
+        if id.len() != PUB_BYTE_LEN {
+            return Err(CryptoError::InvalidDisplayAddress);
+        }
+
+        let mut hasher = sha3::Sha3_256::new();
+        hasher.update(id);
+        let mut da = [0u8; DA_BYTE_LEN];
+        da.copy_from_slice(&hasher.finalize());
+
+        Ok(Self { da })
     }
 
     pub fn from_pk(id: &PublicKeyBytes) -> Self {

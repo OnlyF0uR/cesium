@@ -345,7 +345,9 @@ name = "cesium-nebula"
 version = "0.3.0"
 dependencies = [
  "cesium-crypto",
+ "cesium-standards",
  "cesium-storage",
+ "dashmap",
  "selenide-runtime",
  "tokio",
 ]
@@ -388,6 +390,7 @@ dependencies = [
 name = "cesium-standards"
 version = "0.3.0"
 dependencies = [
+ "cesium-crypto",
  "once_cell",
 ]
 
