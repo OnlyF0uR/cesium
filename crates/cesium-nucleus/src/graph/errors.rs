@@ -1,6 +1,6 @@
 use std::{array::TryFromSliceError, fmt, string::FromUtf8Error};
 
-use cesium_nebula::{instruction::InstructionError, transaction::TransactionError};
+use cesium_nebula::{instructions::errors::InstructionError, transaction::TransactionError};
 use cesium_storage::errors::StorageError;
 
 #[derive(Debug)]

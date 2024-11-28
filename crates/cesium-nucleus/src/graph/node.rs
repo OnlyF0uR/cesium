@@ -1,4 +1,7 @@
-use cesium_nebula::instruction::{Instruction, InstructionError, InstructionType};
+use cesium_nebula::instructions::{
+    errors::InstructionError,
+    instruction::{Instruction, InstructionType},
+};
 use tokio::sync::RwLock;
 
 use super::errors::GraphError;
@@ -106,7 +109,7 @@ impl GraphNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cesium_nebula::instruction::{Instruction, InstructionType};
+    use cesium_nebula::instructions::instruction::{Instruction, InstructionType};
 
     #[tokio::test]
     async fn test_graph_node() {

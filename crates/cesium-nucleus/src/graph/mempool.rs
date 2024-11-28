@@ -227,7 +227,7 @@ impl<'a> Graph<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cesium_nebula::instruction::{Instruction, InstructionType};
+    use cesium_nebula::instructions::instruction::{Instruction, InstructionType};
     use std::sync::Arc;
     use tokio::task;
 

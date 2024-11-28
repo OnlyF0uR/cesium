@@ -9,7 +9,10 @@ use cesium_crypto::{
     },
 };
 
-use crate::instruction::{Instruction, InstructionError, InstructionType};
+use crate::instructions::{
+    errors::InstructionError,
+    instruction::{Instruction, InstructionType},
+};
 
 #[derive(Debug)]
 pub enum TransactionError {
@@ -233,7 +236,7 @@ impl Transaction {
 
 #[cfg(test)]
 mod tests {
-    use crate::instruction::InstructionType;
+    use crate::instructions::instruction::InstructionType;
 
     use super::*;
 
