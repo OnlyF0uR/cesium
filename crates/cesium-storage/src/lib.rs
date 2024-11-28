@@ -75,7 +75,7 @@ pub mod errors;
 
 #[cfg(test)]
 mod tests {
-    use cesium_crypto::dilithium::keypair::{SignerPair, ViewOperations};
+    use cesium_crypto::mldsa::keypair::{SignerPair, ViewOperations};
 
     use super::*;
 

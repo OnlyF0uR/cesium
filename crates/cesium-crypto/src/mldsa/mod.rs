@@ -1,7 +1,7 @@
-// Dilihtium3
-pub const PUB_BYTE_LEN: usize = 1312;
-pub const SEC_BYTE_LEN: usize = 2560;
-pub const SIG_BYTE_LEN: usize = 2420;
+// Dilihtium2
+pub const PUB_BYTE_LEN: usize = 1312; // 1952 (for d3, mldsa65)
+pub const SEC_BYTE_LEN: usize = 2560; // 4032 (for d3, mldsa65)
+pub const SIG_BYTE_LEN: usize = 2420; // 3309 (for d3, mldsa65)
 
 pub type PublicKeyBytes = [u8; PUB_BYTE_LEN];
 pub type SecretKeyBytes = [u8; SEC_BYTE_LEN];

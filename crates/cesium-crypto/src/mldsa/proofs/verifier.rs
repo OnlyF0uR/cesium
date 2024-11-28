@@ -7,7 +7,7 @@ use sha3::{
 
 use crate::{
     errors::CryptoError,
-    sphinxplus::keypair::{SignerPair, ViewOperations},
+    mldsa::keypair::{SignerPair, ViewOperations},
 };
 
 use super::{Challenge, Commitment, Response, CHALLENGE_LENGTH};
@@ -28,7 +28,7 @@ impl VerifierProtocol {
         Challenge(challenge)
     }
 
-    /// Verify a proof using SPHINCS+ signature verification
+    /// Verify a proof using Dilithium (mldsa44) signature verification
     pub fn verify(
         account: &SignerPair,
         commitment: &Commitment,

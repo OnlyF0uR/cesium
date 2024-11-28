@@ -1,4 +1,4 @@
-use cesium_crypto::dilithium::da::{DABytes, DA_BYTE_LEN};
+use cesium_crypto::mldsa::da::{DABytes, DA_BYTE_LEN};
 
 pub struct NFTHolderData {
     name_len: u32,
@@ -76,7 +76,7 @@ impl NFTHolderData {
 
 #[cfg(test)]
 mod tests {
-    use cesium_crypto::dilithium::da::DisplayAddress;
+    use cesium_crypto::mldsa::da::DisplayAddress;
 
     use super::*;
 

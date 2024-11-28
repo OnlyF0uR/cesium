@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use cesium_crypto::dilithium::da::{DABytes, DisplayAddress, DA_BYTE_LEN};
+use cesium_crypto::mldsa::da::{DABytes, DisplayAddress, DA_BYTE_LEN};
 use cesium_storage::{errors::StorageError, RocksDBStore};
 use selenide_runtime::errors::RuntimeError;
 

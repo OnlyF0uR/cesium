@@ -216,7 +216,7 @@ pub async fn start_rpc(dag: &Arc<Graph<'static>>) -> Result<String, RpcError> {
 mod tests {
     use std::sync::Arc;
 
-    use cesium_crypto::dilithium::keypair::SignerPair;
+    use cesium_crypto::mldsa::keypair::SignerPair;
     use cesium_nucleus::graph::mempool::Graph;
     use jsonrpsee::{
         core::{client::ClientT, ClientError},

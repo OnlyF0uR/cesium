@@ -18,7 +18,7 @@ mod tests {
     use prover::ProverProtocol;
     use verifier::VerifierProtocol;
 
-    use crate::dilithium::keypair::SignerPair;
+    use crate::falcon::keypair::SignerPair;
 
     use super::*;
 

@@ -6,8 +6,8 @@ use sha3::{
 };
 
 use crate::{
-    dilithium::keypair::{SignerPair, ViewOperations},
     errors::CryptoError,
+    falcon::keypair::{SignerPair, ViewOperations},
 };
 
 use super::{Challenge, Commitment, Response, CHALLENGE_LENGTH};
@@ -28,7 +28,7 @@ impl VerifierProtocol {
         Challenge(challenge)
     }
 
-    /// Verify a proof using Dilithium (mldsa44) signature verification
+    /// Verify a proof using Falcon (fndsa512) signature verification
     pub fn verify(
         account: &SignerPair,
         commitment: &Commitment,

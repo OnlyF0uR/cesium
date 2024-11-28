@@ -1,6 +1,6 @@
 use std::{fs::File, io::Write, path::PathBuf, sync::Arc};
 
-use cesium_crypto::dilithium::keypair::{SignerPair, ViewOperations};
+use cesium_crypto::mldsa::keypair::{SignerPair, ViewOperations};
 use cesium_nucleus::graph::mempool::Graph;
 use cesium_rpc::start_rpc;
 

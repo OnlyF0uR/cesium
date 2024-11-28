@@ -18,7 +18,7 @@ mod tests {
     use prover::ProverProtocol;
     use verifier::VerifierProtocol;
 
-    use crate::sphinxplus::keypair::SignerPair;
+    use crate::mldsa::keypair::SignerPair;
 
     use super::*;
 

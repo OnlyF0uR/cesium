@@ -6,7 +6,7 @@ use sha3::{
     Shake256,
 };
 
-use crate::{dilithium::keypair::SignerPair, errors::CryptoError};
+use crate::{errors::CryptoError, sphincsplus::keypair::SignerPair};
 
 use super::{Challenge, Commitment, Response, CHALLENGE_LENGTH, SALT_LENGTH};
 

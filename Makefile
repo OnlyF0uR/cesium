@@ -15,4 +15,4 @@ endif
 fmt:
 	cargo fmt --all -- --check
 test:
-	cargo test --exclude selenide-sdk --exclude state --exclude state-sdk --workspace
+	cargo test --all-features --exclude selenide-sdk --exclude state --exclude state-sdk --workspace

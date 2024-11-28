@@ -1,4 +1,4 @@
-use cesium_crypto::dilithium::da::DisplayAddress;
+use cesium_crypto::mldsa::da::DisplayAddress;
 use wasmer::FunctionEnvMut;
 
 use crate::{env::ContractEnv, memory};

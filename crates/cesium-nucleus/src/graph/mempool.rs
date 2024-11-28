@@ -1,4 +1,4 @@
-use cesium_crypto::dilithium::{keypair::SignerPair, SIG_BYTE_LEN};
+use cesium_crypto::mldsa::{keypair::SignerPair, SIG_BYTE_LEN};
 use cesium_nebula::transaction::Transaction;
 use dashmap::DashMap;
 use std::sync::Arc;

@@ -1,12 +1,12 @@
 use std::time::SystemTime;
 
 use cesium_crypto::{
-    dilithium::{
+    errors::CryptoError,
+    mldsa::{
         da::DisplayAddress,
         keypair::{SignerPair, VerifierPair, ViewOperations},
         PublicKeyBytes, PUB_BYTE_LEN,
     },
-    errors::CryptoError,
 };
 
 use crate::instruction::{Instruction, InstructionError, InstructionType};

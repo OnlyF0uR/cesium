@@ -321,8 +321,7 @@ name = "cesium-crypto"
 version = "0.3.0"
 dependencies = [
  "bs58",
- "cesium-standards",
- "hex",
+ "pqcrypto-falcon",
  "pqcrypto-mldsa",
  "pqcrypto-sphincsplus",
  "pqcrypto-traits",
@@ -1975,6 +1974,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77957b295656769bb8ad2b6a6b09d897d94f05c41b069aede1fcdaa675eaea04"
 dependencies = [
  "zerocopy",
+]
+
+[[package]]
+name = "pqcrypto-falcon"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fbfa4d6a6d74ec89d69deeaed335829c030ddc1f76b2ef92f72519f6e7d466c"
+dependencies = [
+ "cc",
+ "glob",
+ "libc",
+ "pqcrypto-internals",
+ "pqcrypto-traits",
 ]
 
 [[package]]

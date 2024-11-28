@@ -6,13 +6,20 @@ license = "GPL-3.0"
 publish = false
 
 
+[features]
+default = ["mldsa"]
+mldsa = ["pqcrypto-mldsa", "sha3"]
+falcon = ["pqcrypto-falcon", "sha3"]
+sphincsplus = ["pqcrypto-sphincsplus"]
+bulletproofs = ["sha3"]
+
+
 [dependencies]
-pqcrypto-sphincsplus.workspace = true
-pqcrypto-traits.workspace = true
-pqcrypto-mldsa.workspace = true
-hex.workspace = true
+pqcrypto-mldsa = { version = "0.1.0", features = ["avx2"], optional = true }
+pqcrypto-sphincsplus = { version = "0.7.0", features = ["avx2"], optional = true}
+pqcrypto-falcon = { version = "0.4.0", features = ["avx2"], optional = true }
+pqcrypto-traits = "0.3.5"
+sha3 = {version = "0.10.8", optional = true }
 rand.workspace = true
 bs58.workspace = true
 serde.workspace = true
-sha3.workspace = true
-cesium-standards.workspace = true

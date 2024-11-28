@@ -1,4 +1,4 @@
-use cesium_crypto::dilithium::da::{DABytes, DA_BYTE_LEN};
+use cesium_crypto::mldsa::da::{DABytes, DA_BYTE_LEN};
 
 macro_rules! bounds_check {
     ($bytes:expr, $pub_byte_len:expr) => {
@@ -37,7 +37,7 @@ impl CurrencyHolderData {
 
 #[cfg(test)]
 mod tests {
-    use cesium_crypto::dilithium::da::DisplayAddress;
+    use cesium_crypto::mldsa::da::DisplayAddress;
 
     use super::*;
 
