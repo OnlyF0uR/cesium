@@ -1,4 +1,4 @@
-use std::{error::Error, fmt};
+use std::fmt;
 
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -36,23 +36,7 @@ impl fmt::Display for RuntimeError {
     }
 }
 
-// Implement the Error trait for custom error handling
-impl Error for RuntimeError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match *self {
-            RuntimeError::WasmerInstantiationError(ref e) => Some(e),
-            RuntimeError::WasmerExportError(ref e) => Some(e),
-            RuntimeError::WasmerCompileError(ref e) => Some(e),
-            RuntimeError::WasmerRuntimeError(ref e) => Some(e),
-            RuntimeError::WasmerMemoryAccessError(ref e) => Some(e),
-            RuntimeError::MemoryNotInitialized => None,
-            RuntimeError::MemoryOutOfBounds => None,
-            RuntimeError::MemoryAllocationError => None,
-            RuntimeError::InvalidExportReturnType => None,
-            RuntimeError::OutOfGas => None,
-        }
-    }
-}
+impl std::error::Error for RuntimeError {}
 
 impl From<wasmer::InstantiationError> for RuntimeError {
     fn from(error: wasmer::InstantiationError) -> Self {

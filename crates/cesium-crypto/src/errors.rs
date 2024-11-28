@@ -29,6 +29,8 @@ impl std::fmt::Display for CryptoError {
     }
 }
 
+impl std::error::Error for CryptoError {}
+
 impl From<bs58::encode::Error> for CryptoError {
     fn from(e: bs58::encode::Error) -> Self {
         CryptoError::BaseEncodeError(e)
@@ -46,5 +48,3 @@ impl From<pqcrypto_traits::Error> for CryptoError {
         CryptoError::PQCryptoError(e)
     }
 }
-
-// impl std::error::Error for CryptoError {}

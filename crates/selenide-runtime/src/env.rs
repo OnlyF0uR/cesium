@@ -1,9 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use cesium_crypto::mldsa::da::DABytes;
 use wasmer::Memory;
-
-// type for address
-pub type AccountId = Vec<u8>;
 
 #[derive(Clone, Debug)]
 pub struct ContractState {
@@ -18,9 +16,9 @@ impl ContractState {
 
 #[derive(Clone, Debug)]
 pub struct DataAccount {
-    pub owner: AccountId,
+    pub owner: DABytes,
     pub data: Vec<u8>,
-    pub update_auth: Option<AccountId>,
+    pub update_auth: Option<DABytes>,
 }
 
 #[derive(Clone, Debug)]
