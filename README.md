@@ -11,4 +11,4 @@ Cesium uses a Directed Acyclic Graph (DAG) for processing transactions asynchron
 
 ### Smart contracts
 
-Smart contracts are compiled in WASM and executed in a control wasmer virtual sandbox, this runtime is referred to as Selenide. An sdk is provided to improve DX.
+Smart contracts are compiled in WASM and executed in a controlled wasmer virtual sandbox, this runtime is referred to as Selenide. An sdk is provided to improve DX.
